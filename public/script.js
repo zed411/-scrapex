@@ -121,6 +121,7 @@ function stopDone() {
   els.stopBtn.classList.add('hidden');
   currentJobId = null;
   hideSkeleton();
+  showToast('Stopped', 'error');
 }
 
 els.stopBtn.addEventListener('click', stopScrape);
