@@ -1,10 +1,10 @@
 const express = require('express');
 const path = require('path');
+const { chromium } = require('playwright');
 const { scrapeGoogleMaps, scrapeLeads } = require('./scraper');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const jobs = {};
 
 app.use(express.json());
 app.use((req, res, next) => {
@@ -22,14 +22,17 @@ app.post('/api/scrape', async (req, res) => {
   if (!searchString) return res.status(400).json({ error: 'searchString is required' });
 
   try {
+    const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const items = [];
     const add = (item) => items.push(item);
     const aborted = () => false;
 
-    // Each scraper manages its own browser
-    await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted);
-    await scrapeLeads({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted);
-
+    try {
+      await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted, browser);
+      await scrapeLeads({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted, browser);
+    } finally {
+      await browser.close().catch(() => {});
+    }
     res.json({ status: 'SUCCEEDED', items });
   } catch (err) {
     console.error('Scrape error:', err);
