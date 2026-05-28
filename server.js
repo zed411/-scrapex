@@ -32,7 +32,8 @@ app.post('/api/scrape', async (req, res) => {
   (async () => {
     try {
       const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-      const add = (item) => { if (!job.aborted) job.items.push(item); };
+      const seen = new Set();
+      const add = (item) => { if (!job.aborted) { const key = item.url || item.title || item.name || ''; if (key && seen.has(key)) return; if (key) seen.add(key); job.items.push(item); } };
       const aborted = () => job.aborted;
 
       try {
