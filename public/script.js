@@ -1,6 +1,6 @@
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? '/api/scrape'
-  : 'https://scrapex-backend.up.railway.app/api/scrape';
+  : 'https://scrapex-production-2b35.up.railway.app/api/scrape';
 
 const TEMPLATES = [
   { id: 'google-maps', name: 'Maps', icon: '📍', desc: 'Businesses & places', search: 'e.g. "Coffee shops"', loc: true },
