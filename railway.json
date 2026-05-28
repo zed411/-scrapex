@@ -1,0 +1,10 @@
+{
+  "build": {
+    "builder": "nixpacks",
+    "buildCommand": "npx playwright install chromium"
+  },
+  "deploy": {
+    "startCommand": "node server.js",
+    "healthcheckPath": "/api/health"
+  }
+}

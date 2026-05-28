@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScrapeX</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <div class="logo-icon">S</div>
+        <h1>ScrapeX</h1>
+      </div>
+      <p class="subtitle">Pick a template, type what to search, go</p>
+      <div class="tagline">
+        <span class="tagline-dot"></span>
+        Free data extraction — no API keys
+      </div>
+    </header>
+
+    <div class="templates" id="templateList"></div>
+
+    <form id="searchForm" class="search-box">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder='What to search...'
+        required
+      />
+      <input
+        type="text"
+        id="locationInput"
+        placeholder='Location (optional)'
+        class="location-input"
+      />
+      <input
+        type="number"
+        id="maxResults"
+        placeholder="Max"
+        min="1"
+        max="100"
+        value="10"
+        class="max-input"
+      />
+      <button type="submit" id="searchBtn">Scrape</button>
+    </form>
+
+    <div id="status" class="status hidden"></div>
+
+    <div id="results" class="results hidden">
+      <div class="results-header">
+        <h2>Results <span id="resultCount"></span></h2>
+        <button id="exportCsvBtn" class="btn-secondary">Export CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table id="resultsTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footer">ScrapeX — free data extraction</div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
