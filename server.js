@@ -30,21 +30,21 @@ app.post('/api/scrape', async (req, res) => {
   const max = Number(maxCrawledPlaces);
   const templates = ['google-maps', 'leads', 'tiktok', 'youtube', 'ecommerce'];
 
-  // Launch ONE browser for all scrapers
-  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] }).catch(() => null);
-  if (!browser) { job.status = 'error'; job.error = 'Failed to launch browser'; return res.json({ jobId }); }
-
-  const promises = templates.map(template =>
-    scrape({ template, searchString, locationQuery, maxResults: max, job, browser })
-      .catch(() => {})
-  );
-
-  Promise.all(promises).finally(() => {
-    browser.close().catch(() => {});
-    if (!job.aborted) job.status = 'done';
-  });
-
+  // Return job ID immediately — browser launches in background
   res.json({ jobId });
+
+  // Launch browser and run scrapers asynchronously
+  chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] })
+    .then(browser => {
+      if (job.aborted) { browser.close().catch(() => {}); return; }
+      return Promise.all(templates.map(t =>
+        scrape({ template: t, searchString, locationQuery, maxResults: max, job, browser }).catch(() => {})
+      )).finally(() => {
+        browser.close().catch(() => {});
+        if (!job.aborted) job.status = 'done';
+      });
+    })
+    .catch(() => { job.status = 'error'; job.error = 'Browser launch failed'; });
 });
 
 app.get('/api/scrape/:jobId', (req, res) => {
