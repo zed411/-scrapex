@@ -85,7 +85,7 @@ function parseQuery(input) {
   if (splitMatch) { searchTerm = text.slice(0, splitMatch.index).trim(); keywords = text.slice(splitMatch.index + splitMatch[0].length).trim(); }
   searchTerm = searchTerm.replace(/[.,!?]+$/g, '').trim();
   if (keywords) keywords = keywords.replace(/[.,!?]+$/g, '').trim();
-  const isNatural = !!(locMatch || splitMatch || input.match(/^(?:find|search|looking|show|get|i want|i need|give|can you)/i));
+  const isNatural = !!(locMatch || splitMatch || input.match(/^(?:find|search|looking|show|get|i want|i need|give|can you)/i)) || input.split(/\s+/).length > 2;
   return { searchTerm, location, keywords, isNatural };
 }
 
