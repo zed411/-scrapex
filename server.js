@@ -18,7 +18,7 @@ app.use((req, res, next) => {
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.post('/api/scrape', async (req, res) => {
-  const { searchString, locationQuery, maxCrawledPlaces = 10 } = req.body;
+  const { searchString, locationQuery, maxCrawledPlaces = 50 } = req.body;
   if (!searchString) return res.status(400).json({ error: 'searchString is required' });
 
   try {

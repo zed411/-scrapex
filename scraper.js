@@ -8,7 +8,7 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
     await p.waitForTimeout(4000);
 
     const feed = p.locator('[role="feed"]');
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 12; i++) {
       try { await feed.evaluate(el => el.scrollBy(0, el.scrollHeight)); await p.waitForTimeout(400); } catch (_) {}
     }
 
@@ -49,7 +49,7 @@ async function scrapeLeads({ searchString, locationQuery, maxResults }, add, abo
     await p.waitForTimeout(2500);
 
     const feed = p.locator('[role="feed"]');
-    for (let s = 0; s < 3; s++) { try { await feed.evaluate(el => el.scrollBy(0, el.scrollHeight)); await p.waitForTimeout(300); } catch (_) {} }
+    for (let s = 0; s < 8; s++) { try { await feed.evaluate(el => el.scrollBy(0, el.scrollHeight)); await p.waitForTimeout(300); } catch (_) {} }
 
     const children = await feed.locator('> div').all();
     for (const child of children) {

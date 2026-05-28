@@ -139,7 +139,7 @@ els.searchForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   let query = els.searchInput.value.trim();
   let location = els.locationInput.value.trim();
-  const max = 10;
+  const max = 50;
   if (!query) return;
 
   const parsed = parseQuery(query);
