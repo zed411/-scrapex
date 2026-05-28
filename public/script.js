@@ -162,7 +162,7 @@ els.searchForm.addEventListener('submit', async (e) => {
   els.searchBtn.textContent = 'Scraping…';
   els.stopBtn.classList.remove('hidden');
   hideResults();
-  hideToast();
+  showToast('Scraping…', 'loading');
   showSkeleton();
 
   try {
