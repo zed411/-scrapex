@@ -3,8 +3,6 @@ const { chromium } = require('playwright');
 async function scrape({ template, searchString, locationQuery, maxResults = 10 }) {
   switch (template) {
     case 'youtube': return scrapeYouTube({ searchString, maxResults });
-    case 'hackernews': return scrapeHN({ searchString, maxResults });
-    case 'wikipedia': return scrapeWikipedia({ searchString, maxResults });
     case 'tiktok': return scrapeTikTok({ searchString, maxResults });
     case 'leads': return scrapeLeads({ searchString, maxResults });
     default: return scrapeGoogleMaps({ searchString, locationQuery, maxResults });
@@ -105,95 +103,6 @@ async function scrapeYouTube({ searchString, maxResults }) {
   return results;
 }
 
-async function scrapeHN({ searchString, maxResults }) {
-  const browser = await launch();
-  const page = await browser.newPage();
-  const results = [];
-
-  try {
-    const url = searchString
-      ? `https://hn.algolia.com/?q=${encodeURIComponent(searchString)}`
-      : 'https://news.ycombinator.com/';
-    await page.goto(url, { timeout: 30000 });
-    await page.waitForTimeout(3000);
-
-    if (searchString) {
-      // Algolia search
-      const items = await page.locator('.Story, .ais-Hits-item').all();
-      const max = Math.min(items.length, maxResults || items.length);
-      for (let i = 0; i < max; i++) {
-        try {
-          const el = items[i];
-          const title = await el.locator('a').first().textContent().catch(() => '');
-          const link = await el.locator('a').first().getAttribute('href').catch(() => '');
-          const points = await el.locator('.Story_points, [class*="points"]').first().textContent().catch(() => '');
-          const comments = await el.locator('a:has-text("comments"), a:has-text("comment")').first().textContent().catch(() => '');
-          results.push({ title: title?.trim() || '', points: points?.trim() || '', comments: comments?.trim() || '', url: link || '' });
-        } catch (_) {}
-      }
-    } else {
-      // Front page
-      const posts = await page.locator('.athing').all();
-      const max = Math.min(posts.length, maxResults || posts.length);
-      for (let i = 0; i < max; i++) {
-        try {
-          const el = posts[i];
-          const title = await el.locator('.titleline a').first().textContent().catch(() => '');
-          const link = await el.locator('.titleline a').first().getAttribute('href').catch(() => '');
-          const scoreEl = await page.locator(`#score_${await el.getAttribute('id')}`).first();
-          const points = await scoreEl.textContent().catch(() => '');
-          results.push({ title: title?.trim() || '', points: points?.trim() || '', url: link || '' });
-        } catch (_) {}
-      }
-    }
-  } finally {
-    await browser.close();
-  }
-  return results;
-}
-
-async function scrapeWikipedia({ searchString, maxResults }) {
-  const browser = await launch();
-  const page = await browser.newPage();
-  const results = [];
-
-  try {
-    await page.goto(`https://en.wikipedia.org/w/index.php?search=${encodeURIComponent(searchString)}&title=Special%3ASearch&fulltext=1`, { timeout: 30000 });
-    await page.waitForTimeout(2000);
-
-    // Check if redirected directly to an article
-    if (page.url().includes('/wiki/')) {
-      const title = await page.locator('#firstHeading').textContent().catch(() => '');
-      const summary = await page.locator('#mw-content-text p').first().textContent().catch(() => '');
-      results.push({
-        title: title?.trim() || searchString,
-        summary: summary?.trim()?.substring(0, 500) || '',
-        url: page.url(),
-      });
-      return results;
-    }
-
-    const items = await page.locator('.mw-search-result-heading').all();
-    const max = Math.min(items.length, maxResults || items.length);
-
-    for (let i = 0; i < max; i++) {
-      try {
-        const el = items[i];
-        const title = await el.locator('a').first().getAttribute('title').catch(() => '');
-        const link = await el.locator('a').first().getAttribute('href').catch(() => '');
-        const snippet = await el.locator('..').locator('.searchresult, .mw-search-result').first().textContent().catch(() => '');
-        results.push({
-          title: title?.trim() || '',
-          snippet: snippet?.trim()?.substring(0, 300) || '',
-          url: link ? `https://en.wikipedia.org${link}` : '',
-        });
-      } catch (_) {}
-    }
-  } finally {
-    await browser.close();
-  }
-  return results;
-}
 
 async function scrapeLeads({ searchString, maxResults }) {
   const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
