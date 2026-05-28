@@ -52,51 +52,69 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
 
 
 async function scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted, browser) {
+  // Lightweight Maps scrape - just get names and websites without clicking details
+  const p = await browser.newPage();
   const businessResults = [];
-  const tempAdd = (item) => businessResults.push(item);
-  await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Math.min(maxResults, 6) }, tempAdd, aborted, browser);
-  if (!businessResults.length || aborted()) return;
+  try {
+    const query = locationQuery ? `${searchString} near ${locationQuery}` : searchString;
+    await p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 15000, waitUntil: 'domcontentloaded' });
+    await p.waitForTimeout(2500);
+    for (let s = 0; s < 4; s++) { try { await p.locator('[role="feed"]').evaluate(el => el.scrollBy(0, el.scrollHeight)); await p.waitForTimeout(300); } catch (_) {} }
+
+    const feed = p.locator('[role="feed"]');
+    const children = await feed.locator('> div').all();
+    for (const child of children) {
+      if (businessResults.length >= maxResults || aborted()) break;
+      const link = child.locator('a[href*="/maps/place/"]');
+      if (!(await link.count())) continue;
+      const name = await link.getAttribute('aria-label').catch(() => '');
+      const href = await link.getAttribute('href').catch(() => '');
+      if (name) businessResults.push({ title: name, website: '', url: href ? (href.startsWith('http') ? href : `https://www.google.com${href}`) : '' });
+    }
+  } catch (_) {}
+
+  if (!businessResults.length || aborted()) { await p.close(); return; }
 
   const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const phoneRe = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
   const badRe = /\.(png|jpg|jpeg|gif|svg|css|js|ico)$|@example\.|@your\.|@\./i;
   const contactPaths = ['/contact', '/contact-us', '/contact.html', '/about', '/about-us', '/about.html', '/team', '/support'];
 
-  const p = await browser.newPage();
-  for (const biz of businessResults) {
-    if (aborted()) break;
-    const lead = { name: biz.title || '', website: biz.website || '', phone: biz.phone || '', email: '', linkedin: '', twitter: '', instagram: '', address: biz.address || '' };
-    if (biz.website) {
-      try {
-        await p.goto(biz.website, { timeout: 6000, waitUntil: 'domcontentloaded' }).catch(() => {});
-        await p.waitForTimeout(800);
-        const body = await p.locator('body').textContent({ timeout: 2000 }).catch(() => '');
-        if (body) {
-          const emails = [...body.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
-          lead.email = emails[0] || '';
-          const li = body.match(/linkedin\.com\/(?:company|in)\/[a-zA-Z0-9_-]+/i);
-          if (li) lead.linkedin = `https://${li[0].toLowerCase()}`;
-          if (!lead.phone) { const ph = [...body.matchAll(phoneRe)].map(m => m[0]); lead.phone = ph[0] || ''; }
-          if (!lead.email) {
-            for (const path of contactPaths) {
-              if (aborted()) break;
-              try {
-                await p.goto(new URL(path, biz.website).href, { timeout: 4000 }).catch(() => {});
-                await p.waitForTimeout(500);
-                const ct = await p.locator('body').textContent({ timeout: 2000 }).catch(() => '');
-                if (ct) {
-                  const ce = [...ct.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
-                  if (ce.length > 0) { lead.email = ce[0]; break; }
-                }
-              } catch (_) {}
+  try {
+    for (const biz of businessResults) {
+      if (aborted()) break;
+      const lead = { name: biz.title || '', website: biz.website || '', phone: biz.phone || '', email: '', linkedin: '', twitter: '', instagram: '', address: biz.address || '' };
+      if (biz.website) {
+        try {
+          await p.goto(biz.website, { timeout: 6000, waitUntil: 'domcontentloaded' }).catch(() => {});
+          await p.waitForTimeout(800);
+          const body = await p.locator('body').textContent({ timeout: 2000 }).catch(() => '');
+          if (body) {
+            const emails = [...body.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
+            lead.email = emails[0] || '';
+            const li = body.match(/linkedin\.com\/(?:company|in)\/[a-zA-Z0-9_-]+/i);
+            if (li) lead.linkedin = `https://${li[0].toLowerCase()}`;
+            if (!lead.phone) { const ph = [...body.matchAll(phoneRe)].map(m => m[0]); lead.phone = ph[0] || ''; }
+            if (!lead.email) {
+              for (const path of contactPaths) {
+                if (aborted()) break;
+                try {
+                  await p.goto(new URL(path, biz.website).href, { timeout: 4000 }).catch(() => {});
+                  await p.waitForTimeout(500);
+                  const ct = await p.locator('body').textContent({ timeout: 2000 }).catch(() => '');
+                  if (ct) {
+                    const ce = [...ct.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
+                    if (ce.length > 0) { lead.email = ce[0]; break; }
+                  }
+                } catch (_) {}
+              }
             }
           }
-        }
-      } catch (_) {}
+        } catch (_) {}
+      }
+      add(lead);
     }
-    add(lead);
-  }
-  await p.close();
+  } finally { await p.close(); }
 }
 
 async function scrapeEcommerce({ searchString, maxResults }, add, aborted, browser) {
