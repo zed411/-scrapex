@@ -14,7 +14,6 @@ const els = {
   searchInput: document.getElementById('searchInput'),
   locationInput: document.getElementById('locationInput'),
   keywordsInput: document.getElementById('keywordsInput'),
-  maxResults: document.getElementById('maxResults'),
   searchBtn: document.getElementById('searchBtn'),
   stopBtn: document.getElementById('stopBtn'),
   toast: document.getElementById('toast'),
@@ -192,7 +191,7 @@ els.searchForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   let query = els.searchInput.value.trim();
   let location = els.locationInput.value.trim();
-  const max = els.maxResults.value || 5;
+  const max = 10;
   if (!query) return;
 
   // Parse if fields are empty
