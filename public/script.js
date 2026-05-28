@@ -251,8 +251,8 @@ function appendCards(items) {
     const title = item.title || item.name || item.author || item.channel || '(no title)';
     const stars = item.stars ? '★'.repeat(Math.round(item.stars)) + '☆'.repeat(5 - Math.round(item.stars)) : '';
     const source = item._source ? '<span class="source-badge source-' + item._source + '">' + (SOURCE_NAMES[item._source] || item._source) + '</span>' : '';
-    const email = item.email ? '<span class="card-email">✉ ' + item.email + '</span>' : '';
-    const phone = item.phone ? '<span class="card-phone">📞 ' + item.phone + '</span>' : '';
+    const email = item.email ? '<a href="mailto:' + item.email + '" class="card-email" onclick="event.stopPropagation()">✉ ' + item.email + '</a>' : '';
+    const phone = item.phone ? '<a href="tel:' + item.phone.replace(/[^\d+]/g, '') + '" class="card-phone" onclick="event.stopPropagation()">📞 ' + item.phone + '</a>' : '';
     const website = item.website || item.url || '';
     return '<div class="card new-card" data-idx="' + idx + '">' +
       '<button class="copy-btn" data-json=\'' + escapeAttr(JSON.stringify(item)) + '\' title="Copy">📋</button>' +
@@ -308,7 +308,8 @@ function openModal(item, columns) {
     columns.filter(c => c !== '_source' && c !== 'searchString').map(c => {
       const val = item[c]; if (val === null || val === undefined) return '';
       const str = String(val); const isUrl = str.match(/^https?:\/\//);
-      return '<div class="m-field"><div class="m-label">' + camelToTitle(c) + '</div><div class="m-value">' + (isUrl ? '<a href="' + str + '" target="_blank" rel="noopener">' + str + '</a>' : str) + '</div></div>';
+      const isPhone = c === 'phone' && str.replace(/[^\d+]/g, '').length > 5;
+      return '<div class="m-field"><div class="m-label">' + camelToTitle(c) + '</div><div class="m-value">' + (isUrl ? '<a href="' + str + '" target="_blank" rel="noopener">' + str + '</a>' : isPhone ? '<a href="tel:' + str.replace(/[^\d+]/g, '') + '">' + str + '</a>' : str) + '</div></div>';
     }).join('') +
     '<button class="btn-secondary" style="margin-top:16px;width:100%" onclick="copyResult(\'' + escapeAttr(JSON.stringify(item)) + '\')">📋 Copy to Clipboard</button>';
   els.modal.classList.remove('hidden');
