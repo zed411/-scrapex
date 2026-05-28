@@ -13,16 +13,15 @@
         <div class="logo-icon">S</div>
         <h1>ScrapeX</h1>
       </div>
-      <p class="subtitle">Pick a template, type what to search, go</p>
+      <p class="subtitle">Type what to search — scrapes everything at once</p>
     </header>
 
-    <div class="templates" id="templateList"></div>
-
     <form id="searchForm" class="search-box">
-      <input type="text" id="searchInput" placeholder="What to search..." required />
+      <input type="text" id="searchInput" placeholder='e.g. "Coffee shops", "Plumber Chicago", "Python tutorial"' required />
       <input type="text" id="locationInput" placeholder="Location (optional)" class="location-input" />
-      <input type="number" id="maxResults" placeholder="Max" min="1" max="100" value="10" class="max-input" />
+      <input type="number" id="maxResults" placeholder="Max" min="1" max="50" value="5" class="max-input" />
       <button type="submit" id="searchBtn">Scrape</button>
+      <button type="button" id="stopBtn" class="stop-btn hidden">Stop</button>
     </form>
 
     <div id="toast" class="toast hidden"></div>

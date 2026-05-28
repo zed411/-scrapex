@@ -40,6 +40,10 @@ h1 { font-size: 2rem; font-weight: 800; letter-spacing: -.5px; background: linea
 .search-box button:active { transform: translateY(0); }
 .search-box button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
+.stop-btn { padding: 13px 20px; background: linear-gradient(135deg,#ea4335,#c5221f); color: #fff; border: none; border-radius: 10px; font-size: .9rem; font-weight: 600; cursor: pointer; transition: opacity .2s; white-space: nowrap; box-shadow: 0 4px 15px rgba(234,67,53,.2); }
+.stop-btn:hover { opacity: .85; }
+.stop-btn.hidden { display: none; }
+
 /* Toast */
 .toast { text-align: center; padding: 12px 20px; border-radius: 10px; margin-bottom: 20px; font-weight: 500; font-size: .9rem; display: flex; align-items: center; justify-content: center; gap: 10px; animation: slideIn .3s ease; }
 .toast.hidden { display: none; }
