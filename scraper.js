@@ -16,38 +16,38 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
   const p = await b.newPage({ locale: 'en-US' });
   try {
     const query = locationQuery ? `${searchString} near ${locationQuery}` : searchString;
-    await p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 15000, waitUntil: 'domcontentloaded' });
-    await p.waitForTimeout(3000);
+    const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}/`;
+    await p.goto(searchUrl, { timeout: 10000, waitUntil: 'domcontentloaded' });
+    await p.waitForTimeout(2000);
 
-    for (let i = 0; i < 5; i++) {
-      try { await p.locator('[role="feed"]').evaluate(el => el.scrollBy(0, el.scrollHeight)); await p.waitForTimeout(400); } catch (_) {}
-    }
-
+    // Collect all place links first
     const feed = p.locator('[role="feed"]');
+    for (let i = 0; i < 3; i++) { try { await feed.evaluate(el => el.scrollBy(0, el.scrollHeight)); } catch (_) {} }
+
     const children = await feed.locator('> div').all();
-    let count = 0;
+    const places = [];
     for (const child of children) {
-      if (aborted() || count >= maxResults) break;
+      if (places.length >= maxResults) break;
       const link = child.locator('a[href*="/maps/place/"]');
       if (!(await link.count())) continue;
+      const href = await link.getAttribute('href');
+      const name = await link.getAttribute('aria-label');
+      let stars = 0;
+      const rt = await child.locator('span[aria-label*="stars"]').first().getAttribute('aria-label').catch(() => '');
+      if (rt) stars = parseFloat(rt.match(/[\d.]+/)?.[0]) || 0;
+      places.push({ href, name, stars });
+    }
+
+    // Visit each place for details
+    for (const place of places) {
+      if (aborted()) break;
       try {
-        const href = await link.getAttribute('href');
-        const name = await link.getAttribute('aria-label');
-        let stars = 0;
-        const rt = await child.locator('span[aria-label*="stars"]').first().getAttribute('aria-label').catch(() => '');
-        if (rt) stars = parseFloat(rt.match(/[\d.]+/)?.[0]) || 0;
-
-        await link.click();
-        await p.waitForTimeout(600);
-
+        await p.goto(place.href.startsWith('http') ? place.href : `https://www.google.com${place.href}`, { timeout: 8000, waitUntil: 'domcontentloaded' });
+        await p.waitForTimeout(500);
         const phone = await txt(p, 'button[data-tooltip*="phone"], button[aria-label*="Phone"]');
         const website = await attr(p, 'a[data-tooltip*="website"], a[data-item-id*="authority"]', 'href');
         const address = await txt(p, 'button[data-tooltip*="address"], button[aria-label*="Address"]');
-
-        add({ title: name || '', stars, address, phone, website, url: href ? (href.startsWith('http') ? href : `https://www.google.com${href}`) : '' });
-        count++;
-        await p.goBack({ timeout: 8000 }).catch(() => p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 8000 }));
-        await p.waitForTimeout(400);
+        add({ title: place.name || '', stars: place.stars, address, phone, website, url: place.href ? (place.href.startsWith('http') ? place.href : `https://www.google.com${place.href}`) : '' });
       } catch (_) {}
     }
   } finally { await b.close(); }
