@@ -3,8 +3,6 @@ async function scrape({ template, searchString, locationQuery, maxResults = 10, 
   const aborted = () => job && job.aborted;
 
   switch (template) {
-    case 'youtube': return scrapeYouTube({ searchString, maxResults }, add, aborted, browser);
-    case 'tiktok': return scrapeTikTok({ searchString, maxResults }, add, aborted, browser);
     case 'leads': return scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted, browser);
     case 'ecommerce': return scrapeEcommerce({ searchString, maxResults }, add, aborted, browser);
     default: return scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted, browser);
@@ -52,65 +50,6 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
   } finally { await p.close(); }
 }
 
-async function scrapeYouTube({ searchString, maxResults }, add, aborted, browser) {
-  const p = await browser.newPage();
-  try {
-    await p.goto(`https://www.youtube.com/results?search_query=${encodeURIComponent(searchString)}`, { timeout: 15000, waitUntil: 'domcontentloaded' });
-    await p.waitForTimeout(3000);
-    await p.waitForSelector('ytd-video-renderer', { timeout: 8000 }).catch(() => {});
-
-    const videos = await p.locator('ytd-video-renderer').all();
-    for (let i = 0; i < Math.min(videos.length, maxResults); i++) {
-      if (aborted()) break;
-      try {
-        const el = videos[i];
-        const title = await el.locator('#video-title').first().textContent().catch(() => '');
-        const link = await el.locator('#video-title').first().getAttribute('href').catch(() => '');
-        const channel = await el.locator('#channel-name, #text-container').first().textContent().catch(() => '');
-        const meta = await el.locator('#metadata-line span').all();
-        add({
-          title: title?.trim() || '',
-          channel: channel?.trim() || '',
-          views: meta.length > 0 ? (await meta[0].textContent().catch(() => ''))?.trim() : '',
-          uploaded: meta.length > 1 ? (await meta[1].textContent().catch(() => ''))?.trim() : '',
-          url: link ? `https://www.youtube.com${link}` : '',
-        });
-      } catch (_) {}
-    }
-  } finally { await p.close(); }
-}
-
-async function scrapeTikTok({ searchString, maxResults }, add, aborted, browser) {
-  const ctx = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36',
-    viewport: { width: 390, height: 844 },
-  });
-  const p = await ctx.newPage();
-  await p.addInitScript(() => { Object.defineProperty(navigator, 'webdriver', { get: () => undefined }); });
-  try {
-    await p.goto(`https://www.tiktok.com/search/video?q=${encodeURIComponent(searchString)}`, { timeout: 15000, waitUntil: 'domcontentloaded' });
-    await p.waitForTimeout(4000);
-    for (let s = 0; s < 3; s++) { await p.evaluate(() => window.scrollBy(0, 400)); await p.waitForTimeout(500); if (aborted()) break; }
-
-    const text = await p.locator('body').innerText().catch(() => '');
-    const lines = text.split('\n').filter(l => l.trim());
-    let i = 0;
-    while (i < lines.length && !aborted()) {
-      const line = lines[i].trim();
-      if (/^[\d.]+[MK]?$/.test(line) && i + 2 < lines.length && lines[i + 2] === 'Share') {
-        let author = i + 3 < lines.length ? lines[i + 3] : '', description = '', sound = '';
-        let ptr = i + 3;
-        if (ptr < lines.length) author = lines[ptr++];
-        while (ptr < lines.length && (!lines[ptr].trim() || lines[ptr] === 'more' || lines[ptr] === 'Share')) ptr++;
-        if (ptr < lines.length) description = lines[ptr++];
-        while (ptr < lines.length && !lines[ptr].trim()) ptr++;
-        if (ptr < lines.length) sound = lines[ptr];
-        add({ author, description, likes: line, comments: lines[i + 1], sound });
-        i = ptr + 1;
-      } else { i++; }
-    }
-  } finally { await p.close(); await ctx.close(); }
-}
 
 async function scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted, browser) {
   const businessResults = [];

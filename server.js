@@ -28,7 +28,7 @@ app.post('/api/scrape', async (req, res) => {
   jobs[jobId] = job;
 
   const max = Number(maxCrawledPlaces);
-  const templates = ['google-maps', 'leads', 'tiktok', 'youtube', 'ecommerce'];
+  const templates = ['google-maps', 'leads', 'ecommerce'];
 
   // Return job ID immediately — browser launches in background
   res.json({ jobId });
