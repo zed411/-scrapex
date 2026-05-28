@@ -11,7 +11,6 @@ let currentItems = [];
 let allItems = []; // unfiltered
 let isCardView = true;
 let sortKey = '';
-let sortAsc = true;
 let pollTimer = null;
 let currentJobId = null;
 let activeFilters = {};
@@ -28,11 +27,7 @@ const els = {
   filterBar: document.getElementById('filterBar'),
   skeleton: document.getElementById('skeleton'),
   results: document.getElementById('results'),
-  tableHead: document.getElementById('tableHead'),
-  tableBody: document.getElementById('tableBody'),
-  tableView: document.getElementById('tableView'),
   cardsView: document.getElementById('cardsView'),
-  viewToggle: document.getElementById('viewToggle'),
   resultCount: document.getElementById('resultCount'),
   exportCsvBtn: document.getElementById('exportCsvBtn'),
   exportJsonBtn: document.getElementById('exportJsonBtn'),
@@ -155,7 +150,6 @@ els.searchForm.addEventListener('submit', async (e) => {
   saveHistory(query, location);
   allItems = []; currentItems = []; prevCount = 0;
   activeFilters = {};
-  els.tableBody.innerHTML = '';
   els.cardsView.innerHTML = '';
   els.filterBar.classList.add('hidden');
   els.searchBtn.disabled = true;
@@ -239,56 +233,11 @@ function applyFilters() {
 
 // Setup table
 function setupTable(items) {
-  const keys = new Set();
-  items.forEach(item => Object.keys(item).forEach(k => keys.add(k)));
-  const columns = Array.from(keys);
-
-  els.tableHead.innerHTML = '<tr>' + columns.map(c =>
-    '<th data-key="' + c + '" class="' + (sortKey === c ? 'sorted' : '') + '">' + camelToTitle(c) + (sortKey === c ? (sortAsc ? ' ▲' : ' ▼') : '') + '</th>'
-  ).join('') + '</tr>';
-  els.tableHead.querySelectorAll('th').forEach(th => {
-    th.addEventListener('click', () => {
-      const key = th.dataset.key;
-      if (sortKey === key) sortAsc = !sortAsc;
-      else { sortKey = key; sortAsc = true; }
-      prevCount = 0; els.tableBody.innerHTML = ''; els.cardsView.innerHTML = '';
-      const sorted = sortItems([...currentItems], key, sortAsc);
-      appendTableRows(sorted); appendCards(sorted);
-    });
-  });
-  els.tableBody.innerHTML = '';
   els.cardsView.innerHTML = '';
-  const sorted = sortItems(items, sortKey, sortAsc);
-  appendTableRows(sorted);
-  appendCards(sorted);
+  appendCards(sortItems(items, sortKey, sortAsc));
   els.resultCount.textContent = '(' + items.length + ')';
-  // Default to card view
-  els.tableView.classList.toggle('hidden', isCardView);
-  els.cardsView.classList.toggle('hidden', !isCardView);
-  els.viewToggle.textContent = isCardView ? '⊞' : '▦';
 }
 
-function appendTableRows(items) {
-  const columns = Object.keys(allItems[0] || {});
-  const rows = items.map((item, i) => {
-    const globalIdx = allItems.indexOf(item);
-    const source = item._source ? '<span class="source-badge source-' + item._source + '">' + (SOURCE_NAMES[item._source] || item._source) + '</span>' : '';
-    return '<tr class="clickable new-row" data-idx="' + globalIdx + '">' + columns.map(c => {
-      const val = item[c];
-      if (c === '_source') return '<td>' + source + '</td>';
-      if (val === null || val === undefined) return '<td></td>';
-      if (typeof val === 'object') return '<td>' + JSON.stringify(val).slice(0, 200) + '</td>';
-      const str = String(val);
-      if (str.match(/^https?:\/\//)) return '<td><a href="' + str + '" target="_blank" rel="noopener">' + str + '</a></td>';
-      return '<td>' + str + '</td>';
-    }).join('') + '</tr>';
-  }).join('');
-  els.tableBody.insertAdjacentHTML('beforeend', rows);
-
-  els.tableBody.querySelectorAll('tr.clickable').forEach(row => {
-    row.addEventListener('click', (e) => { if (e.target.closest('.copy-btn')) return; const idx = parseInt(row.dataset.idx); if (allItems[idx]) openModal(allItems[idx], Object.keys(allItems[idx])); });
-  });
-}
 
 function appendCards(items) {
   const cardsHtml = items.map(item => {
@@ -345,12 +294,6 @@ function sortItems(items, key, asc) {
   });
 }
 
-els.viewToggle.addEventListener('click', () => {
-  isCardView = !isCardView;
-  els.tableView.classList.toggle('hidden', isCardView);
-  els.cardsView.classList.toggle('hidden', !isCardView);
-  els.viewToggle.textContent = isCardView ? '⊞' : '▦';
-});
 
 // Modal
 function openModal(item, columns) {
