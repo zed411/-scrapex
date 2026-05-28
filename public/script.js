@@ -209,7 +209,7 @@ function pollResults() {
         else if (items.length === 0) showToast('No results found', 'error');
         else showToast(`Done — ${items.length} results`, 'success');
       }
-    } catch (_) { clearInterval(pollTimer); stopDone(); showToast('Connection lost', 'error'); }
+    } catch (_) { /* ignore transient errors */ }
   }, 800);
 }
 
