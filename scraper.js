@@ -1,4 +1,4 @@
-const { chromium } = require('playwright-core');
+const { chromium } = require('playwright');
 
 async function scrape({ template, searchString, locationQuery, maxResults = 10 }) {
   switch (template) {
