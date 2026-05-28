@@ -31,8 +31,29 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
         const website = await attr(p, 'a[data-tooltip*="website"]', 'a[data-item-id*="authority"]');
         const address = await txt(p, 'button[data-tooltip*="address"]', 'button[aria-label*="Address"]');
 
-        add({ _source: 'maps', title: name || '', stars, address, phone, website, url: href ? (href.startsWith('http') ? href : `https://www.google.com${href}`) : '' });
+        add({ _source: 'maps', title: name || '', stars, address, phone, website, url: href || '' });
         count++;
+
+        // Also add as a lead if we have a website (to find email)
+        if (website && !aborted()) {
+          try {
+            const p2 = await browser.newPage();
+            await p2.goto(website, { timeout: 6000, waitUntil: 'domcontentloaded' }).catch(() => {});
+            await p2.waitForTimeout(500);
+            const body = await p2.locator('body').textContent({ timeout: 2000 }).catch(() => '');
+            if (body) {
+              const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+              const badRe = /\.(png|jpg|jpeg|gif|svg|css|js|ico)$|@example\.|@\./i;
+              const email = ([...body.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e)))[0] || '';
+              const li = body.match(/linkedin\.com\/(?:company|in)\/[a-zA-Z0-9_-]+/i);
+              const linkedin = li ? `https://${li[0].toLowerCase()}` : '';
+              if (email || linkedin) {
+                add({ _source: 'leads', name: name || '', website, phone, address, email, linkedin });
+              }
+            }
+            await p2.close();
+          } catch (_) {}
+        }
         await p.goBack({ timeout: 10000 }).catch(() => {});
         await p.waitForTimeout(400);
       } catch (_) {}

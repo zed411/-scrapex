@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const { chromium } = require('playwright');
-const { scrapeGoogleMaps, scrapeLeads } = require('./scraper');
+const { scrapeGoogleMaps } = require('./scraper');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,7 +37,6 @@ app.post('/api/scrape', async (req, res) => {
 
       try {
         await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted, browser);
-        await scrapeLeads({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted, browser);
       } finally {
         await browser.close().catch(() => {});
       }
