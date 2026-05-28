@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
+const { chromium } = require('playwright');
 const { scrape } = require('./scraper');
 
 const app = express();
@@ -29,13 +30,17 @@ app.post('/api/scrape', async (req, res) => {
   const max = Number(maxCrawledPlaces);
   const templates = ['google-maps', 'leads', 'tiktok', 'youtube', 'ecommerce'];
 
-  // Run all scrapers in parallel, each pushes results to job.items
+  // Launch ONE browser for all scrapers
+  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] }).catch(() => null);
+  if (!browser) { job.status = 'error'; job.error = 'Failed to launch browser'; return res.json({ jobId }); }
+
   const promises = templates.map(template =>
-    scrape({ template, searchString, locationQuery, maxResults: max, job })
+    scrape({ template, searchString, locationQuery, maxResults: max, job, browser })
       .catch(() => {})
   );
 
-  Promise.all(promises).then(() => {
+  Promise.all(promises).finally(() => {
+    browser.close().catch(() => {});
     if (!job.aborted) job.status = 'done';
   });
 
@@ -54,13 +59,10 @@ app.delete('/api/scrape/:jobId', (req, res) => {
   res.json({ ok: true });
 });
 
-// Cleanup old jobs after 10 minutes
 setInterval(() => {
   const now = Date.now();
   for (const id of Object.keys(jobs)) {
-    if (jobs[id].status !== 'running' && (now - (jobs[id]._ts || now)) > 600000) {
-      delete jobs[id];
-    }
+    if (jobs[id].status !== 'running' && (now - (jobs[id]._ts || now)) > 600000) delete jobs[id];
   }
 }, 60000);
 

@@ -104,7 +104,7 @@ function pollResults() {
         else showToast(`Done — ${items.length} results`, 'success');
       }
     } catch (_) { clearInterval(pollTimer); stopDone(); }
-  }, 1000);
+  }, 800);
 }
 
 function stopScrape() {

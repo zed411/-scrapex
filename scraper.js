@@ -1,65 +1,63 @@
-const { chromium } = require('playwright');
-
-async function scrape({ template, searchString, locationQuery, maxResults = 10, job }) {
+async function scrape({ template, searchString, locationQuery, maxResults = 10, job, browser }) {
   const add = (item) => { if (job && !job.aborted) { item._source = template; job.items.push(item); } };
   const aborted = () => job && job.aborted;
 
   switch (template) {
-    case 'youtube': return scrapeYouTube({ searchString, maxResults }, add, aborted);
-    case 'tiktok': return scrapeTikTok({ searchString, maxResults }, add, aborted);
-    case 'leads': return scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted);
-    case 'ecommerce': return scrapeEcommerce({ searchString, maxResults }, add, aborted);
-    default: return scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted);
+    case 'youtube': return scrapeYouTube({ searchString, maxResults }, add, aborted, browser);
+    case 'tiktok': return scrapeTikTok({ searchString, maxResults }, add, aborted, browser);
+    case 'leads': return scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted, browser);
+    case 'ecommerce': return scrapeEcommerce({ searchString, maxResults }, add, aborted, browser);
+    default: return scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted, browser);
   }
 }
 
-async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted) {
-  const b = await launch();
-  const p = await b.newPage({ locale: 'en-US' });
+async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted, browser) {
+  const p = await browser.newPage();
   try {
     const query = locationQuery ? `${searchString} near ${locationQuery}` : searchString;
-    await p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 30000 });
-    await p.waitForTimeout(5000);
-    await dismissCookie(p);
-    await scrollFeed(p);
+    await p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 15000, waitUntil: 'domcontentloaded' });
+    await p.waitForTimeout(3000);
 
-    const cards = await getCards(p, 'a[href*="/maps/place/"]');
-    for (let i = 0; i < Math.min(cards.length, maxResults); i++) {
-      if (aborted()) break;
+    for (let i = 0; i < 5; i++) {
+      try { await p.locator('[role="feed"]').evaluate(el => el.scrollBy(0, el.scrollHeight)); await p.waitForTimeout(400); } catch (_) {}
+    }
+
+    const feed = p.locator('[role="feed"]');
+    const children = await feed.locator('> div').all();
+    let count = 0;
+    for (const child of children) {
+      if (aborted() || count >= maxResults) break;
+      const link = child.locator('a[href*="/maps/place/"]');
+      if (!(await link.count())) continue;
       try {
-        const { el } = cards[i];
-        const link = el.locator('a[href*="/maps/place/"]').first();
-        const href = await link.getAttribute('href').catch(() => '');
-        const name = await link.getAttribute('aria-label').catch(() => '');
-
+        const href = await link.getAttribute('href');
+        const name = await link.getAttribute('aria-label');
         let stars = 0;
-        const rt = await el.locator('span[aria-label*="stars"]').first().getAttribute('aria-label').catch(() => '');
+        const rt = await child.locator('span[aria-label*="stars"]').first().getAttribute('aria-label').catch(() => '');
         if (rt) stars = parseFloat(rt.match(/[\d.]+/)?.[0]) || 0;
 
-        await link.click().catch(() => {});
-        await p.waitForTimeout(800);
+        await link.click();
+        await p.waitForTimeout(600);
 
-        let phone = '', website = '', address = '';
-        phone = await txt(p, 'button[data-tooltip*="phone"], button[aria-label*="Phone"]');
-        website = await attr(p, 'a[data-tooltip*="website"], a[data-item-id*="authority"]', 'href');
-        address = await txt(p, 'button[data-tooltip*="address"], button[aria-label*="Address"]');
+        const phone = await txt(p, 'button[data-tooltip*="phone"], button[aria-label*="Phone"]');
+        const website = await attr(p, 'a[data-tooltip*="website"], a[data-item-id*="authority"]', 'href');
+        const address = await txt(p, 'button[data-tooltip*="address"], button[aria-label*="Address"]');
 
         add({ title: name || '', stars, address, phone, website, url: href ? (href.startsWith('http') ? href : `https://www.google.com${href}`) : '' });
-
-        await p.goBack({ timeout: 10000 }).catch(() => p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 10000 }));
-        await p.waitForTimeout(600);
+        count++;
+        await p.goBack({ timeout: 8000 }).catch(() => p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 8000 }));
+        await p.waitForTimeout(400);
       } catch (_) {}
     }
-  } finally { await b.close(); }
+  } finally { await p.close(); }
 }
 
-async function scrapeYouTube({ searchString, maxResults }, add, aborted) {
-  const b = await launch();
-  const p = await b.newPage();
+async function scrapeYouTube({ searchString, maxResults }, add, aborted, browser) {
+  const p = await browser.newPage();
   try {
-    await p.goto(`https://www.youtube.com/results?search_query=${encodeURIComponent(searchString)}`, { timeout: 30000 });
-    await p.waitForTimeout(5000);
-    await p.waitForSelector('ytd-video-renderer', { timeout: 10000 }).catch(() => {});
+    await p.goto(`https://www.youtube.com/results?search_query=${encodeURIComponent(searchString)}`, { timeout: 15000, waitUntil: 'domcontentloaded' });
+    await p.waitForTimeout(3000);
+    await p.waitForSelector('ytd-video-renderer', { timeout: 8000 }).catch(() => {});
 
     const videos = await p.locator('ytd-video-renderer').all();
     for (let i = 0; i < Math.min(videos.length, maxResults); i++) {
@@ -79,21 +77,20 @@ async function scrapeYouTube({ searchString, maxResults }, add, aborted) {
         });
       } catch (_) {}
     }
-  } finally { await b.close(); }
+  } finally { await p.close(); }
 }
 
-async function scrapeTikTok({ searchString, maxResults }, add, aborted) {
-  const b = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'] });
-  const ctx = await b.newContext({
+async function scrapeTikTok({ searchString, maxResults }, add, aborted, browser) {
+  const ctx = await browser.newContext({
     userAgent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36',
     viewport: { width: 390, height: 844 },
   });
   const p = await ctx.newPage();
   await p.addInitScript(() => { Object.defineProperty(navigator, 'webdriver', { get: () => undefined }); });
   try {
-    await p.goto(`https://www.tiktok.com/search/video?q=${encodeURIComponent(searchString)}`, { timeout: 30000, waitUntil: 'domcontentloaded' });
-    await p.waitForTimeout(8000);
-    for (let s = 0; s < 3; s++) { await p.evaluate(() => window.scrollBy(0, 400)); await p.waitForTimeout(800); if (aborted()) break; }
+    await p.goto(`https://www.tiktok.com/search/video?q=${encodeURIComponent(searchString)}`, { timeout: 15000, waitUntil: 'domcontentloaded' });
+    await p.waitForTimeout(4000);
+    for (let s = 0; s < 3; s++) { await p.evaluate(() => window.scrollBy(0, 400)); await p.waitForTimeout(500); if (aborted()) break; }
 
     const text = await p.locator('body').innerText().catch(() => '');
     const lines = text.split('\n').filter(l => l.trim());
@@ -101,8 +98,7 @@ async function scrapeTikTok({ searchString, maxResults }, add, aborted) {
     while (i < lines.length && !aborted()) {
       const line = lines[i].trim();
       if (/^[\d.]+[MK]?$/.test(line) && i + 2 < lines.length && lines[i + 2] === 'Share') {
-        let author = i + 3 < lines.length ? lines[i + 3] : '';
-        let description = '', sound = '';
+        let author = i + 3 < lines.length ? lines[i + 3] : '', description = '', sound = '';
         let ptr = i + 3;
         if (ptr < lines.length) author = lines[ptr++];
         while (ptr < lines.length && (!lines[ptr].trim() || lines[ptr] === 'more' || lines[ptr] === 'Share')) ptr++;
@@ -113,14 +109,13 @@ async function scrapeTikTok({ searchString, maxResults }, add, aborted) {
         i = ptr + 1;
       } else { i++; }
     }
-  } finally { await b.close(); }
+  } finally { await p.close(); await ctx.close(); }
 }
 
-async function scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted) {
+async function scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted, browser) {
   const businessResults = [];
   const tempAdd = (item) => businessResults.push(item);
-  await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Math.min(maxResults, 8) }, tempAdd, aborted);
-
+  await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Math.min(maxResults, 6) }, tempAdd, aborted, browser);
   if (!businessResults.length || aborted()) return;
 
   const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
@@ -128,33 +123,28 @@ async function scrapeLeads({ searchString, locationQuery, maxResults }, add, abo
   const badRe = /\.(png|jpg|jpeg|gif|svg|css|js|ico)$|@example\.|@your\.|@\./i;
   const contactPaths = ['/contact', '/contact-us', '/contact.html', '/about', '/about-us', '/about.html', '/team', '/support'];
 
-  const b = await launch();
-  const p = await b.newPage();
-
+  const p = await browser.newPage();
   for (const biz of businessResults) {
     if (aborted()) break;
     const lead = { name: biz.title || '', website: biz.website || '', phone: biz.phone || '', email: '', linkedin: '', twitter: '', instagram: '', address: biz.address || '' };
-
     if (biz.website) {
       try {
-        await p.goto(biz.website, { timeout: 8000, waitUntil: 'domcontentloaded' }).catch(() => {});
-        await p.waitForTimeout(1000);
-        const body = await p.locator('body').textContent({ timeout: 3000 }).catch(() => '');
-
+        await p.goto(biz.website, { timeout: 6000, waitUntil: 'domcontentloaded' }).catch(() => {});
+        await p.waitForTimeout(800);
+        const body = await p.locator('body').textContent({ timeout: 2000 }).catch(() => '');
         if (body) {
           const emails = [...body.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
           lead.email = emails[0] || '';
           const li = body.match(/linkedin\.com\/(?:company|in)\/[a-zA-Z0-9_-]+/i);
           if (li) lead.linkedin = `https://${li[0].toLowerCase()}`;
           if (!lead.phone) { const ph = [...body.matchAll(phoneRe)].map(m => m[0]); lead.phone = ph[0] || ''; }
-
           if (!lead.email) {
             for (const path of contactPaths) {
               if (aborted()) break;
               try {
-                await p.goto(new URL(path, biz.website).href, { timeout: 5000 }).catch(() => {});
-                await p.waitForTimeout(600);
-                const ct = await p.locator('body').textContent({ timeout: 3000 }).catch(() => '');
+                await p.goto(new URL(path, biz.website).href, { timeout: 4000 }).catch(() => {});
+                await p.waitForTimeout(500);
+                const ct = await p.locator('body').textContent({ timeout: 2000 }).catch(() => '');
                 if (ct) {
                   const ce = [...ct.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
                   if (ce.length > 0) { lead.email = ce[0]; break; }
@@ -167,15 +157,14 @@ async function scrapeLeads({ searchString, locationQuery, maxResults }, add, abo
     }
     add(lead);
   }
-  await b.close();
+  await p.close();
 }
 
-async function scrapeEcommerce({ searchString, maxResults }, add, aborted) {
-  const b = await launch();
-  const p = await b.newPage();
+async function scrapeEcommerce({ searchString, maxResults }, add, aborted, browser) {
+  const p = await browser.newPage();
   try {
-    await p.goto(`https://www.wish.com/search/${encodeURIComponent(searchString)}`, { timeout: 20000 });
-    await p.waitForTimeout(5000);
+    await p.goto(`https://www.wish.com/search/${encodeURIComponent(searchString)}`, { timeout: 15000, waitUntil: 'domcontentloaded' });
+    await p.waitForTimeout(3000);
 
     const products = await p.locator('[class*="ProductCard"], [class*="product"], [class*="item-card"]').all();
     for (let i = 0; i < Math.min(products.length, maxResults); i++) {
@@ -185,15 +174,13 @@ async function scrapeEcommerce({ searchString, maxResults }, add, aborted) {
         const title = await el.locator('[class*="name"], [class*="title"], h2, h3').first().textContent().catch(() => '');
         const price = await el.locator('[class*="price"], [class*="cost"]').first().textContent().catch(() => '');
         const link = await el.locator('a').first().getAttribute('href').catch(() => '');
-        const rating = await el.locator('[class*="rating"], [class*="stars"]').first().textContent().catch(() => '');
-        add({ title: title?.trim() || '', price: price?.trim() || '', rating: rating?.trim() || '', url: link || '', source: 'wish' });
+        add({ title: title?.trim() || '', price: price?.trim() || '', url: link || '', source: 'wish' });
       } catch (_) {}
     }
 
-    // Also attempt Zalando
     if (!aborted()) {
-      await p.goto(`https://www.zalando.com/catalog/?q=${encodeURIComponent(searchString)}`, { timeout: 15000 }).catch(() => {});
-      await p.waitForTimeout(4000);
+      await p.goto(`https://www.zalando.com/catalog/?q=${encodeURIComponent(searchString)}`, { timeout: 10000 }).catch(() => {});
+      await p.waitForTimeout(2500);
       const zalando = await p.locator('[class*="product"], [class*="article"], [class*="item"]').all();
       for (let i = 0; i < Math.min(zalando.length, maxResults); i++) {
         if (aborted()) break;
@@ -206,57 +193,16 @@ async function scrapeEcommerce({ searchString, maxResults }, add, aborted) {
         } catch (_) {}
       }
     }
-  } finally { await b.close(); }
-}
-
-// Helpers
-async function launch() {
-  return await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-}
-
-async function dismissCookie(page) {
-  try {
-    const btn = page.locator('button:has-text("Accept all"), button:has-text("Reject all")');
-    if (await btn.first().isVisible({ timeout: 1500 }).catch(() => false)) {
-      await btn.first().click();
-      await page.waitForTimeout(800);
-    }
-  } catch (_) {}
-}
-
-async function scrollFeed(page) {
-  try {
-    const feed = page.locator('[role="feed"]');
-    if (await feed.count() > 0) {
-      for (let i = 0; i < 8; i++) {
-        await feed.evaluate(el => el.scrollBy(0, el.scrollHeight));
-        await page.waitForTimeout(500);
-      }
-    }
-  } catch (_) {}
-}
-
-async function getCards(page, linkSelector) {
-  const feed = page.locator('[role="feed"]');
-  const children = await feed.locator('> div').all();
-  const cards = [];
-  for (const child of children) {
-    const text = await child.textContent().catch(() => '');
-    if (!text || text.length < 10) continue;
-    if ((await child.locator(linkSelector).count()) > 0) cards.push({ el: child, text });
-  }
-  return cards;
+  } finally { await p.close(); }
 }
 
 async function txt(page, sel) {
-  try {
-    const t = await page.locator(sel).first().textContent({ timeout: 1500 }).catch(() => '');
-    return t ? t.replace(/[^\x20-\x7E\s]/g, '').trim() : '';
-  } catch (_) { return ''; }
+  try { const t = await page.locator(sel).first().textContent({ timeout: 1000 }).catch(() => ''); return t ? t.replace(/[^\x20-\x7E\s]/g, '').trim() : ''; }
+  catch (_) { return ''; }
 }
 
 async function attr(page, sel, a) {
-  try { return await page.locator(sel).first().getAttribute(a, { timeout: 1500 }).catch(() => '') || ''; }
+  try { return await page.locator(sel).first().getAttribute(a, { timeout: 1000 }).catch(() => '') || ''; }
   catch (_) { return ''; }
 }
 
