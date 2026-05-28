@@ -74,6 +74,9 @@ els.searchForm.addEventListener('submit', async (e) => {
   if (currentJobId) stopScrape();
 
   currentItems = [];
+  prevCount = 0;
+  els.tableBody.innerHTML = '';
+  els.cardsView.innerHTML = '';
   els.searchBtn.disabled = true;
   els.searchBtn.textContent = 'Scraping…';
   els.stopBtn.classList.remove('hidden');
@@ -101,6 +104,8 @@ els.searchForm.addEventListener('submit', async (e) => {
   }
 });
 
+let prevCount = 0;
+
 function pollResults() {
   if (!currentJobId) return;
   pollTimer = setInterval(async () => {
@@ -109,24 +114,37 @@ function pollResults() {
       const data = await res.json();
       if (!res.ok) { clearInterval(pollTimer); stopDone(); showToast('Error polling', 'error'); return; }
 
-      if (data.items && data.items.length !== currentItems.length) {
-        currentItems = data.items;
-        renderResults(currentItems);
+      const items = data.items || [];
+      if (items.length > prevCount) {
+        const newItems = items.slice(prevCount);
+        currentItems = items;
+
         hideSkeleton();
         els.results.classList.remove('hidden');
         showStats(currentItems);
-        showToast(`Found ${data.items.length} results${data.status === 'running' ? '…' : ''}`, 'loading');
+        showToast(`Found ${items.length} results${data.status === 'running' ? '…' : ''}`, 'loading');
+        els.resultCount.textContent = '(' + items.length + ')';
+
+        if (prevCount === 0) {
+          // First batch — render header + all items
+          setupTable(items);
+        } else {
+          // Subsequent batches — append only new items
+          appendTableRows(newItems);
+          appendCards(newItems);
+        }
+        prevCount = items.length;
       }
 
       if (data.status !== 'running') {
         clearInterval(pollTimer);
         stopDone();
         if (data.status === 'stopped') showToast('Stopped', 'error');
-        else if (currentItems.length === 0) showToast('No results found', 'error');
-        else showToast(`Done — ${currentItems.length} results`, 'success');
+        else if (items.length === 0) showToast('No results found', 'error');
+        else showToast(`Done — ${items.length} results`, 'success');
       }
     } catch (_) { clearInterval(pollTimer); stopDone(); }
-  }, 1500);
+  }, 1000);
 }
 
 function stopScrape() {
@@ -147,13 +165,12 @@ function stopDone() {
 
 els.stopBtn.addEventListener('click', stopScrape);
 
-// Render
-function renderResults(items) {
+// First render - set up table header and empty body
+function setupTable(items) {
   const keys = new Set();
   items.forEach(item => Object.keys(item).forEach(k => keys.add(k)));
   const columns = Array.from(keys);
 
-  // Table header (sortable)
   els.tableHead.innerHTML = '<tr>' + columns.map(c =>
     '<th data-key="' + c + '" class="' + (sortKey === c ? 'sorted' : '') + '">' + camelToTitle(c) + (sortKey === c ? (sortAsc ? ' ▲' : ' ▼') : '') + '</th>'
   ).join('') + '</tr>';
@@ -163,40 +180,49 @@ function renderResults(items) {
       const key = th.dataset.key;
       if (sortKey === key) sortAsc = !sortAsc;
       else { sortKey = key; sortAsc = true; }
-      renderTable(sortItems([...items], key, sortAsc));
-      renderCards(sortItems([...items], key, sortAsc));
+      // Re-sort and re-render all
+      currentItems = sortItems([...currentItems], key, sortAsc);
+      prevCount = 0;
+      els.tableBody.innerHTML = '';
+      els.cardsView.innerHTML = '';
+      appendTableRows(currentItems);
+      appendCards(currentItems);
     });
   });
 
-  renderTable(sortItems(items, sortKey, sortAsc));
-  renderCards(sortItems(items, sortKey, sortAsc));
-  els.resultCount.textContent = '(' + items.length + ')';
+  els.tableBody.innerHTML = '';
+  els.cardsView.innerHTML = '';
+  appendTableRows(items);
+  appendCards(items);
 }
 
-function renderTable(sorted) {
+function appendTableRows(items) {
   const columns = Object.keys(currentItems[0] || {});
-  els.tableBody.innerHTML = sorted.map(item =>
-    '<tr class="clickable" data-idx="' + currentItems.indexOf(item) + '">' + columns.map(c => {
+  const rows = items.map((item, i) => {
+    const globalIdx = currentItems.indexOf(item);
+    return '<tr class="clickable new-row" data-idx="' + globalIdx + '">' + columns.map(c => {
       const val = item[c];
       if (val === null || val === undefined) return '<td></td>';
       if (typeof val === 'object') return '<td>' + JSON.stringify(val).slice(0, 200) + '</td>';
       const str = String(val);
       if (str.match(/^https?:\/\//)) return '<td><a href="' + str + '" target="_blank" rel="noopener">' + str.substring(0, 60) + '…</a></td>';
       return '<td>' + str.slice(0, 120) + '</td>';
-    }).join('') + '</tr>'
-  ).join('');
+    }).join('') + '</tr>';
+  }).join('');
 
-  els.tableBody.querySelectorAll('tr.clickable').forEach(row => {
+  els.tableBody.insertAdjacentHTML('beforeend', rows);
+
+  els.tableBody.querySelectorAll('tr.new-row').forEach(row => {
     row.addEventListener('click', () => {
       const idx = parseInt(row.dataset.idx);
-      const item = currentItems[idx];
-      if (item) openModal(item, columns);
+      if (currentItems[idx]) openModal(currentItems[idx], Object.keys(currentItems[idx]));
     });
+    row.classList.remove('new-row');
   });
 }
 
-function renderCards(sorted) {
-  els.cardsView.innerHTML = sorted.map(item => {
+function appendCards(items) {
+  const cardsHtml = items.map(item => {
     const idx = currentItems.indexOf(item);
     const title = item.title || item.name || item.author || item.channel || '(no title)';
     const stars = item.stars ? '★'.repeat(Math.round(item.stars)) + '☆'.repeat(5 - Math.round(item.stars)) : '';
@@ -204,7 +230,7 @@ function renderCards(sorted) {
     const email = item.email ? '<span class="card-email">✉ ' + item.email + '</span>' : '';
     const phone = item.phone ? '<span class="card-phone">📞 ' + item.phone + '</span>' : '';
     const website = item.website || item.url || '';
-    return '<div class="card" data-idx="' + idx + '">' +
+    return '<div class="card new-card" data-idx="' + idx + '">' +
       '<div class="card-title">' + title + '</div>' +
       source +
       (stars ? '<div class="card-stars">' + stars + '</div>' : '') +
@@ -221,11 +247,14 @@ function renderCards(sorted) {
       '</div>';
   }).join('');
 
-  els.cardsView.querySelectorAll('.card').forEach(card => {
+  els.cardsView.insertAdjacentHTML('beforeend', cardsHtml);
+
+  els.cardsView.querySelectorAll('.card.new-card').forEach(card => {
     card.addEventListener('click', () => {
       const idx = parseInt(card.dataset.idx);
       if (currentItems[idx]) openModal(currentItems[idx], Object.keys(currentItems[idx]));
     });
+    card.classList.remove('new-card');
   });
 }
 
