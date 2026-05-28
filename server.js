@@ -34,7 +34,8 @@ app.post('/api/scrape', async (req, res) => {
 
   // Run all scrapers in parallel — each manages its own browser
   Promise.all(templates.map(t =>
-    scrape({ template: t, searchString, locationQuery, maxResults: max, job }).catch(() => {})
+    scrape({ template: t, searchString, locationQuery, maxResults: max, job })
+      .catch(err => { console.error(`Scraper ${t} failed:`, err?.message); })
   )).then(() => {
     if (!job.aborted) job.status = 'done';
   });
