@@ -34,7 +34,7 @@ h1 { font-size: 2rem; font-weight: 800; letter-spacing: -.5px; background: linea
 .search-box input:focus { outline: none; border-color: #4285f4; box-shadow: 0 0 0 3px rgba(66,133,244,.1); }
 .location-input { width: 100%; }
 .keywords-input { width: 100%; }
-.max-input { width: 100%; padding: 13px 16px; text-align: left; }
+.max-input { width: 100%; padding: 13px 16px; text-align: left; appearance: none; cursor: pointer; background: #13131f url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b8ba7'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 14px center; }
 .search-box button { padding: 14px 24px; background: linear-gradient(135deg,#4285f4,#5a5af0); color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: opacity .2s, transform .15s; white-space: nowrap; box-shadow: 0 4px 15px rgba(66,133,244,.2); width: 100%; }
 .search-box button:hover { opacity: .9; transform: translateY(-1px); }
 .search-box button:active { transform: translateY(0); }
