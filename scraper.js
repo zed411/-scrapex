@@ -7,6 +7,14 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
     await p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 15000, waitUntil: 'domcontentloaded' });
     await p.waitForTimeout(3000);
 
+    // DIAG: log page info
+    const diag = { title: await p.title().catch(() => ''), url: p.url(), feedCount: 0, bodyLen: 0 };
+    diag.bodyLen = (await p.locator('body').textContent().catch(() => '')).length;
+    const feed = p.locator('[role="feed"]');
+    diag.feedCount = await feed.count();
+    if (diag.feedCount > 0) diag.childrenCount = await feed.locator('> div').count();
+    console.log('MAPS DIAG:', JSON.stringify(diag));
+
     const feed = p.locator('[role="feed"]');
     for (let i = 0; i < 5; i++) {
       try { await feed.evaluate(el => el.scrollBy(0, el.scrollHeight)); await p.waitForTimeout(400); } catch (_) {}

@@ -16,7 +16,19 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.get('/api/health', async (req, res) => {
+  let browserOk = false, googleTitle = '';
+  try {
+    const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    browserOk = true;
+    const page = await browser.newPage();
+    await page.goto('https://www.google.com/maps/search/coffee/', { timeout: 10000, waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(2000);
+    googleTitle = await page.title().catch(() => 'error');
+    await browser.close();
+  } catch (e) { googleTitle = e.message; }
+  res.json({ ok: true, browserOk, googleTitle });
+});
 
 app.post('/api/scrape', async (req, res) => {
   const { searchString, locationQuery, maxCrawledPlaces = 10 } = req.body;
