@@ -9,7 +9,7 @@ const HISTORY_KEY = 'scrapex_history';
 
 let currentItems = [];
 let allItems = []; // unfiltered
-let isCardView = false;
+let isCardView = true;
 let sortKey = '';
 let sortAsc = true;
 let pollTimer = null;
@@ -262,6 +262,10 @@ function setupTable(items) {
   appendTableRows(sorted);
   appendCards(sorted);
   els.resultCount.textContent = '(' + items.length + ')';
+  // Default to card view
+  els.tableView.classList.toggle('hidden', isCardView);
+  els.cardsView.classList.toggle('hidden', !isCardView);
+  els.viewToggle.textContent = isCardView ? '⊞' : '▦';
 }
 
 function appendTableRows(items) {
