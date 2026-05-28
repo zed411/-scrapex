@@ -1,16 +1,19 @@
-async function scrape({ template, searchString, locationQuery, maxResults = 10, job, browser }) {
+const { chromium } = require('playwright');
+
+async function scrape({ template, searchString, locationQuery, maxResults = 10, job }) {
   const add = (item) => { if (job && !job.aborted) { item._source = template; job.items.push(item); } };
   const aborted = () => job && job.aborted;
 
   switch (template) {
-    case 'leads': return scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted, browser);
-    case 'ecommerce': return scrapeEcommerce({ searchString, maxResults }, add, aborted, browser);
-    default: return scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted, browser);
+    case 'leads': return scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted);
+    case 'ecommerce': return scrapeEcommerce({ searchString, maxResults }, add, aborted);
+    default: return scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted);
   }
 }
 
-async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted, browser) {
-  const p = await browser.newPage();
+async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted) {
+  const b = await launch();
+  const p = await b.newPage({ locale: 'en-US' });
   try {
     const query = locationQuery ? `${searchString} near ${locationQuery}` : searchString;
     await p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 15000, waitUntil: 'domcontentloaded' });
@@ -47,13 +50,12 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
         await p.waitForTimeout(400);
       } catch (_) {}
     }
-  } finally { await p.close(); }
+  } finally { await b.close(); }
 }
 
-
-async function scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted, browser) {
-  // Lightweight Maps scrape - just get names and websites without clicking details
-  const p = await browser.newPage();
+async function scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted) {
+  const b = await launch();
+  const p = await b.newPage();
   const businessResults = [];
   try {
     const query = locationQuery ? `${searchString} near ${locationQuery}` : searchString;
@@ -69,11 +71,11 @@ async function scrapeLeads({ searchString, locationQuery, maxResults }, add, abo
       if (!(await link.count())) continue;
       const name = await link.getAttribute('aria-label').catch(() => '');
       const href = await link.getAttribute('href').catch(() => '');
-      if (name) businessResults.push({ title: name, website: '', url: href ? (href.startsWith('http') ? href : `https://www.google.com${href}`) : '' });
+      if (name) businessResults.push({ title: name, url: href ? (href.startsWith('http') ? href : `https://www.google.com${href}`) : '' });
     }
   } catch (_) {}
 
-  if (!businessResults.length || aborted()) { await p.close(); return; }
+  if (!businessResults.length || aborted()) { await b.close(); return; }
 
   const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const phoneRe = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
@@ -83,42 +85,52 @@ async function scrapeLeads({ searchString, locationQuery, maxResults }, add, abo
   try {
     for (const biz of businessResults) {
       if (aborted()) break;
-      const lead = { name: biz.title || '', website: biz.website || '', phone: biz.phone || '', email: '', linkedin: '', twitter: '', instagram: '', address: biz.address || '' };
-      if (biz.website) {
-        try {
-          await p.goto(biz.website, { timeout: 6000, waitUntil: 'domcontentloaded' }).catch(() => {});
-          await p.waitForTimeout(800);
-          const body = await p.locator('body').textContent({ timeout: 2000 }).catch(() => '');
-          if (body) {
-            const emails = [...body.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
-            lead.email = emails[0] || '';
-            const li = body.match(/linkedin\.com\/(?:company|in)\/[a-zA-Z0-9_-]+/i);
-            if (li) lead.linkedin = `https://${li[0].toLowerCase()}`;
-            if (!lead.phone) { const ph = [...body.matchAll(phoneRe)].map(m => m[0]); lead.phone = ph[0] || ''; }
-            if (!lead.email) {
-              for (const path of contactPaths) {
-                if (aborted()) break;
-                try {
-                  await p.goto(new URL(path, biz.website).href, { timeout: 4000 }).catch(() => {});
-                  await p.waitForTimeout(500);
-                  const ct = await p.locator('body').textContent({ timeout: 2000 }).catch(() => '');
-                  if (ct) {
-                    const ce = [...ct.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
-                    if (ce.length > 0) { lead.email = ce[0]; break; }
-                  }
-                } catch (_) {}
+      const lead = { name: biz.title || '', website: biz.website || '', phone: '', email: '', linkedin: '', address: '' };
+      if (!biz.url) { add(lead); continue; }
+      // Try to extract website from the Maps URL
+      try {
+        await p.goto(biz.url, { timeout: 8000, waitUntil: 'domcontentloaded' }).catch(() => {});
+        await p.waitForTimeout(1200);
+        lead.website = await attr(p, 'a[data-tooltip*="website"], a[data-item-id*="authority"]', 'href');
+        lead.address = await txt(p, 'button[data-tooltip*="address"], button[aria-label*="Address"]');
+        lead.phone = await txt(p, 'button[data-tooltip*="phone"], button[aria-label*="Phone"]');
+
+        if (lead.website) {
+          try {
+            await p.goto(lead.website, { timeout: 6000, waitUntil: 'domcontentloaded' }).catch(() => {});
+            await p.waitForTimeout(800);
+            const body = await p.locator('body').textContent({ timeout: 2000 }).catch(() => '');
+            if (body) {
+              const emails = [...body.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
+              lead.email = emails[0] || '';
+              const li = body.match(/linkedin\.com\/(?:company|in)\/[a-zA-Z0-9_-]+/i);
+              if (li) lead.linkedin = `https://${li[0].toLowerCase()}`;
+              if (!lead.email) {
+                for (const path of contactPaths) {
+                  if (aborted()) break;
+                  try {
+                    await p.goto(new URL(path, lead.website).href, { timeout: 4000 }).catch(() => {});
+                    await p.waitForTimeout(500);
+                    const ct = await p.locator('body').textContent({ timeout: 2000 }).catch(() => '');
+                    if (ct) {
+                      const ce = [...ct.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
+                      if (ce.length > 0) { lead.email = ce[0]; break; }
+                    }
+                  } catch (_) {}
+                }
               }
             }
-          }
-        } catch (_) {}
-      }
+          } catch (_) {}
+        }
+      } catch (_) {}
       add(lead);
     }
-  } finally { await p.close(); }
+  } finally { await b.close(); }
 }
 
-async function scrapeEcommerce({ searchString, maxResults }, add, aborted, browser) {
-  const p = await browser.newPage();
+async function scrapeEcommerce({ searchString, maxResults }, add, aborted) {
+  const b = await launch();
+  const p = await b.newPage();
   try {
     await p.goto(`https://www.wish.com/search/${encodeURIComponent(searchString)}`, { timeout: 15000, waitUntil: 'domcontentloaded' });
     await p.waitForTimeout(3000);
@@ -150,7 +162,11 @@ async function scrapeEcommerce({ searchString, maxResults }, add, aborted, brows
         } catch (_) {}
       }
     }
-  } finally { await p.close(); }
+  } finally { await b.close(); }
+}
+
+async function launch() {
+  return await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
 }
 
 async function txt(page, sel) {
