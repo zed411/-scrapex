@@ -2,12 +2,19 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
   ? '/api/scrape'
   : 'https://scrapex-production-2b35.up.railway.app/api/scrape';
 
+const SOURCE_COLORS = { 'google-maps': '#4285f4', 'leads': '#34a853', 'ecommerce': '#fbbc04' };
+const SOURCE_NAMES = { 'google-maps': 'Maps', 'leads': 'Leads', 'ecommerce': 'Shop' };
+const STORE_KEY = 'scrapex_results';
+const HISTORY_KEY = 'scrapex_history';
+
 let currentItems = [];
+let allItems = []; // unfiltered
 let isCardView = false;
 let sortKey = '';
 let sortAsc = true;
 let pollTimer = null;
 let currentJobId = null;
+let activeFilters = {};
 
 const els = {
   searchForm: document.getElementById('searchForm'),
@@ -18,6 +25,7 @@ const els = {
   stopBtn: document.getElementById('stopBtn'),
   toast: document.getElementById('toast'),
   statsBar: document.getElementById('statsBar'),
+  filterBar: document.getElementById('filterBar'),
   skeleton: document.getElementById('skeleton'),
   results: document.getElementById('results'),
   tableHead: document.getElementById('tableHead'),
@@ -27,26 +35,24 @@ const els = {
   viewToggle: document.getElementById('viewToggle'),
   resultCount: document.getElementById('resultCount'),
   exportCsvBtn: document.getElementById('exportCsvBtn'),
+  exportJsonBtn: document.getElementById('exportJsonBtn'),
   modal: document.getElementById('modal'),
   modalBody: document.getElementById('modalBody'),
   modalClose: document.getElementById('modalClose'),
   modalCloseX: document.getElementById('modalCloseX'),
   aiBadge: document.getElementById('aiBadge'),
+  historyDropdown: document.getElementById('historyDropdown'),
 };
 
-// Toast
 function showToast(msg, type) {
   els.toast.className = 'toast ' + type;
   if (type === 'loading') els.toast.innerHTML = '<span class="spinner"></span> ' + msg;
   else els.toast.textContent = msg;
 }
 function hideToast() { els.toast.className = 'toast hidden'; }
-
-// Skeleton
 function showSkeleton() { els.skeleton.classList.remove('hidden'); }
 function hideSkeleton() { els.skeleton.classList.add('hidden'); }
 
-// Stats
 function showStats(items) {
   const total = items.length;
   const sources = new Set(items.map(i => i._source).filter(Boolean));
@@ -63,99 +69,23 @@ function showStats(items) {
 function hideStats() { els.statsBar.classList.add('hidden'); }
 function hideResults() { els.results.classList.add('hidden'); hideStats(); }
 
-let prevCount = 0;
-
-function pollResults() {
-  if (!currentJobId) return;
-  pollTimer = setInterval(async () => {
-    try {
-      const res = await fetch(`${API_URL}/${currentJobId}`);
-      const data = await res.json();
-      if (!res.ok) { clearInterval(pollTimer); stopDone(); showToast('Error polling', 'error'); return; }
-
-      const items = data.items || [];
-      if (items.length > prevCount) {
-        const newItems = items.slice(prevCount);
-        currentItems = items;
-
-        hideSkeleton();
-        els.results.classList.remove('hidden');
-        showStats(currentItems);
-        showToast(`Found ${items.length} results${data.status === 'running' ? '…' : ''}`, 'loading');
-        els.resultCount.textContent = '(' + items.length + ')';
-
-        if (prevCount === 0) {
-          // First batch — render header + all items
-          setupTable(items);
-        } else {
-          // Subsequent batches — append only new items
-          appendTableRows(newItems);
-          appendCards(newItems);
-        }
-        prevCount = items.length;
-      }
-
-      if (data.status !== 'running') {
-        clearInterval(pollTimer);
-        stopDone();
-        if (data.status === 'stopped') showToast('Stopped', 'error');
-        else if (items.length === 0) showToast('No results found', 'error');
-        else showToast(`Done — ${items.length} results`, 'success');
-      }
-    } catch (_) { clearInterval(pollTimer); stopDone(); }
-  }, 800);
-}
-
-function stopScrape() {
-  if (currentJobId) {
-    fetch(`${API_URL}/${currentJobId}`, { method: 'DELETE' }).catch(() => {});
-  }
-  clearInterval(pollTimer);
-  stopDone();
-}
-
-function stopDone() {
-  els.searchBtn.disabled = false;
-  els.searchBtn.textContent = 'Scrape';
-  els.stopBtn.classList.add('hidden');
-  currentJobId = null;
-  hideSkeleton();
-  showToast('Stopped', 'error');
-}
-
-els.stopBtn.addEventListener('click', stopScrape);
-
-// Smart query parser
+// Parse query
 function parseQuery(input) {
   let text = input.trim();
   if (!text || text.length < 5) return { searchTerm: text, location: '', keywords: '' };
-
   const locRegex = /\b(?:in|near|around|at)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*)/;
   const locMatch = text.match(locRegex);
-
   let location = '';
-  if (locMatch) {
-    location = locMatch[1].trim();
-    text = text.replace(locMatch[0], '').trim();
-  }
-
+  if (locMatch) { location = locMatch[1].trim(); text = text.replace(locMatch[0], '').trim(); }
   text = text.replace(/^(?:find|find me|search|looking for|show me|get|i want|i need|give me|can you find|can you get)\s+/i, '');
-
   let searchTerm = text;
   let keywords = '';
-
   const splitRegex = /\s+(?:with|that|that have|that are|near|where|which|and have|and are)\s+/i;
   const splitMatch = text.match(splitRegex);
-  if (splitMatch) {
-    searchTerm = text.slice(0, splitMatch.index).trim();
-    keywords = text.slice(splitMatch.index + splitMatch[0].length).trim();
-  }
-
+  if (splitMatch) { searchTerm = text.slice(0, splitMatch.index).trim(); keywords = text.slice(splitMatch.index + splitMatch[0].length).trim(); }
   searchTerm = searchTerm.replace(/[.,!?]+$/g, '').trim();
   if (keywords) keywords = keywords.replace(/[.,!?]+$/g, '').trim();
-
   const isNatural = !!(locMatch || splitMatch || input.match(/^(?:find|search|looking|show|get|i want|i need|give|can you)/i));
-
   return { searchTerm, location, keywords, isNatural };
 }
 
@@ -165,28 +95,46 @@ els.searchInput.addEventListener('input', () => {
   parseTimer = setTimeout(() => {
     const input = els.searchInput.value;
     const parsed = parseQuery(input);
-
     if (parsed.isNatural && parsed.searchTerm) {
       els.aiBadge.classList.remove('hidden');
-      if (parsed.location) {
-        els.locationInput.value = parsed.location;
-        els.locationInput.classList.add('parsed-highlight');
-      }
-      if (parsed.keywords) {
-        els.keywordsInput.value = parsed.keywords;
-        els.keywordsInput.classList.add('parsed-highlight');
-      }
-    } else {
-      els.aiBadge.classList.add('hidden');
-    }
+      if (parsed.location) { els.locationInput.value = parsed.location; els.locationInput.classList.add('parsed-highlight'); }
+      if (parsed.keywords) { els.keywordsInput.value = parsed.keywords; els.keywordsInput.classList.add('parsed-highlight'); }
+    } else { els.aiBadge.classList.add('hidden'); }
   }, 400);
 });
-
-els.searchInput.addEventListener('focus', () => { els.aiBadge.classList.add('hidden'); });
+els.searchInput.addEventListener('focus', () => { els.aiBadge.classList.add('hidden'); showHistory(); });
+els.searchInput.addEventListener('blur', () => setTimeout(() => els.historyDropdown.classList.add('hidden'), 200));
 els.locationInput.addEventListener('focus', () => els.locationInput.classList.remove('parsed-highlight'));
 els.keywordsInput.addEventListener('focus', () => els.keywordsInput.classList.remove('parsed-highlight'));
 
-// Update search to use parsed values
+// History
+function showHistory() {
+  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  if (!history.length) return;
+  els.historyDropdown.innerHTML = history.slice(0, 8).map(h =>
+    '<div class="history-item" data-q="' + h.q + '" data-loc="' + (h.loc || '') + '">' + escapeHtml(h.q) + '<small>' + h.loc + '</small></div>'
+  ).join('');
+  els.historyDropdown.classList.remove('hidden');
+  els.historyDropdown.querySelectorAll('.history-item').forEach(el => {
+    el.addEventListener('click', () => {
+      els.searchInput.value = el.dataset.q;
+      els.locationInput.value = el.dataset.loc;
+      els.historyDropdown.classList.add('hidden');
+    });
+  });
+}
+
+function saveHistory(q, loc) {
+  if (!q) return;
+  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  const existing = history.findIndex(h => h.q === q && h.loc === loc);
+  if (existing > -1) history.splice(existing, 1);
+  history.unshift({ q, loc, t: Date.now() });
+  if (history.length > 20) history.length = 20;
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+// Submit
 els.searchForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   let query = els.searchInput.value.trim();
@@ -194,30 +142,22 @@ els.searchForm.addEventListener('submit', async (e) => {
   const max = 10;
   if (!query) return;
 
-  // Parse if fields are empty
   const parsed = parseQuery(query);
-  if (!location && parsed.location) {
-    location = parsed.location;
-    query = parsed.searchTerm;
-  }
+  if (!location && parsed.location) { location = parsed.location; query = parsed.searchTerm; }
   if (!location) {
     const parts = query.split(/\s+/);
-    // If last word looks like a location (capitalized or common city pattern)
     const lastWord = parts[parts.length - 1];
-    if (lastWord && /^[A-Z][a-z]/.test(lastWord) && parts.length > 1) {
-      location = lastWord;
-      query = parts.slice(0, -1).join(' ');
-    }
+    if (lastWord && /^[A-Z][a-z]/.test(lastWord) && parts.length > 1) { location = lastWord; query = parts.slice(0, -1).join(' '); }
   }
-
   if (!query) return;
-
   if (currentJobId) stopScrape();
 
-  currentItems = [];
-  prevCount = 0;
+  saveHistory(query, location);
+  allItems = []; currentItems = []; prevCount = 0;
+  activeFilters = {};
   els.tableBody.innerHTML = '';
   els.cardsView.innerHTML = '';
+  els.filterBar.classList.add('hidden');
   els.searchBtn.disabled = true;
   els.searchBtn.textContent = 'Scraping…';
   els.stopBtn.classList.remove('hidden');
@@ -228,36 +168,95 @@ els.searchForm.addEventListener('submit', async (e) => {
   try {
     const body = { searchString: query, maxCrawledPlaces: parseInt(max) };
     if (location) body.locationQuery = location;
-
     const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) { showToast(data.error || 'Failed', 'error'); stopDone(); return; }
-
-    // Handle both new job-based API and old synchronous API
-    if (data.jobId) {
-      currentJobId = data.jobId;
-      pollResults();
-    } else if (data.items) {
-      // Old API — results are already here
-      currentItems = data.items;
-      prevCount = data.items.length;
+    if (data.jobId) { currentJobId = data.jobId; pollResults(); }
+    else if (data.items) {
+      allItems = data.items; currentItems = data.items; prevCount = data.items.length;
       hideSkeleton();
       if (data.items.length === 0) { showToast('No results found', 'error'); stopDone(); return; }
-      setupTable(data.items);
-      els.results.classList.remove('hidden');
-      showStats(data.items);
+      buildFilters(data.items); applyFilters();
       showToast(`Found ${data.items.length} results`, 'success');
       stopDone();
     }
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-    stopDone();
-  }
+  } catch (err) { showToast('Error: ' + err.message, 'error'); stopDone(); }
 });
+
+let prevCount = 0;
+
+function pollResults() {
+  if (!currentJobId) return;
+  pollTimer = setInterval(async () => {
+    try {
+      const res = await fetch(`${API_URL}/${currentJobId}`);
+      const data = await res.json();
+      if (!res.ok) { clearInterval(pollTimer); stopDone(); showToast('Error polling', 'error'); return; }
+      const items = data.items || [];
+      if (items.length > prevCount) {
+        allItems = items;
+        hideSkeleton();
+        els.results.classList.remove('hidden');
+        if (prevCount === 0) buildFilters(items);
+        applyFilters();
+        showToast(`Found ${items.length} results${data.status === 'running' ? '…' : ''}`, 'loading');
+        prevCount = items.length;
+      }
+      if (data.status !== 'running') {
+        clearInterval(pollTimer); stopDone();
+        if (data.status === 'stopped') showToast('Stopped', 'error');
+        else if (items.length === 0) showToast('No results found', 'error');
+        else showToast(`Done — ${items.length} results`, 'success');
+      }
+    } catch (_) { clearInterval(pollTimer); stopDone(); }
+  }, 800);
+}
+
+function stopScrape() {
+  if (currentJobId) fetch(`${API_URL}/${currentJobId}`, { method: 'DELETE' }).catch(() => {});
+  clearInterval(pollTimer); stopDone();
+}
+function stopDone() {
+  els.searchBtn.disabled = false; els.searchBtn.textContent = 'Scrape';
+  els.stopBtn.classList.add('hidden'); currentJobId = null;
+  hideSkeleton(); showToast('Stopped', 'error');
+}
+els.stopBtn.addEventListener('click', stopScrape);
+
+// Filters
+function buildFilters(items) {
+  const sources = [...new Set(items.map(i => i._source).filter(Boolean))];
+  if (!sources.length) { els.filterBar.classList.add('hidden'); return; }
+  sources.forEach(s => { if (activeFilters[s] === undefined) activeFilters[s] = true; });
+  els.filterBar.innerHTML = sources.map(s =>
+    '<div class="filter-chip ' + (activeFilters[s] ? 'on' : '') + '" data-source="' + s + '">' +
+    '<span class="filter-dot" style="background:' + (SOURCE_COLORS[s] || '#888') + '"></span>' +
+    (SOURCE_NAMES[s] || s) + '</div>'
+  ).join('');
+  els.filterBar.classList.remove('hidden');
+
+  els.filterBar.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const s = chip.dataset.source;
+      activeFilters[s] = !activeFilters[s];
+      chip.classList.toggle('on', activeFilters[s]);
+      applyFilters();
+    });
+  });
+}
+
+function applyFilters() {
+  const active = Object.entries(activeFilters).filter(([, v]) => v).map(([k]) => k);
+  currentItems = active.length ? allItems.filter(i => active.includes(i._source)) : allItems;
+  if (!currentItems.length) { els.results.classList.add('hidden'); return; }
+  els.results.classList.remove('hidden');
+  setupTable(currentItems);
+  showStats(currentItems);
+}
+
+// Setup table
 function setupTable(items) {
   const keys = new Set();
   items.forEach(item => Object.keys(item).forEach(k => keys.add(k)));
@@ -265,66 +264,62 @@ function setupTable(items) {
 
   els.tableHead.innerHTML = '<tr>' + columns.map(c =>
     '<th data-key="' + c + '" class="' + (sortKey === c ? 'sorted' : '') + '">' + camelToTitle(c) + (sortKey === c ? (sortAsc ? ' ▲' : ' ▼') : '') + '</th>'
-  ).join('') + '</tr>';
-
+  ).join('') + '<th></th></tr>';
   els.tableHead.querySelectorAll('th').forEach(th => {
     th.addEventListener('click', () => {
       const key = th.dataset.key;
       if (sortKey === key) sortAsc = !sortAsc;
       else { sortKey = key; sortAsc = true; }
-      // Re-sort and re-render all
-      currentItems = sortItems([...currentItems], key, sortAsc);
-      prevCount = 0;
-      els.tableBody.innerHTML = '';
-      els.cardsView.innerHTML = '';
-      appendTableRows(currentItems);
-      appendCards(currentItems);
+      prevCount = 0; els.tableBody.innerHTML = ''; els.cardsView.innerHTML = '';
+      const sorted = sortItems([...currentItems], key, sortAsc);
+      appendTableRows(sorted); appendCards(sorted);
     });
   });
-
   els.tableBody.innerHTML = '';
   els.cardsView.innerHTML = '';
-  appendTableRows(items);
-  appendCards(items);
+  const sorted = sortItems(items, sortKey, sortAsc);
+  appendTableRows(sorted);
+  appendCards(sorted);
+  els.resultCount.textContent = '(' + items.length + ')';
 }
 
 function appendTableRows(items) {
-  const columns = Object.keys(currentItems[0] || {});
+  const columns = Object.keys(allItems[0] || {});
   const rows = items.map((item, i) => {
-    const globalIdx = currentItems.indexOf(item);
+    const globalIdx = allItems.indexOf(item);
+    const source = item._source ? '<span class="source-badge source-' + item._source + '">' + (SOURCE_NAMES[item._source] || item._source) + '</span>' : '';
     return '<tr class="clickable new-row" data-idx="' + globalIdx + '">' + columns.map(c => {
       const val = item[c];
+      if (c === '_source') return '<td>' + source + '</td>';
       if (val === null || val === undefined) return '<td></td>';
       if (typeof val === 'object') return '<td>' + JSON.stringify(val).slice(0, 200) + '</td>';
       const str = String(val);
-      if (str.match(/^https?:\/\//)) return '<td><a href="' + str + '" target="_blank" rel="noopener">' + str.substring(0, 60) + '…</a></td>';
-      return '<td>' + str.slice(0, 120) + '</td>';
-    }).join('') + '</tr>';
+      if (str.match(/^https?:\/\//)) return '<td><a href="' + str + '" target="_blank" rel="noopener">' + str.substring(0, 50) + '…</a></td>';
+      return '<td>' + str.slice(0, 100) + '</td>';
+    }).join('') + '<td><button class="copy-btn" data-json=\'' + escapeAttr(JSON.stringify(item)) + '\' title="Copy">📋</button></td></tr>';
   }).join('');
-
   els.tableBody.insertAdjacentHTML('beforeend', rows);
 
-  els.tableBody.querySelectorAll('tr.new-row').forEach(row => {
-    row.addEventListener('click', () => {
-      const idx = parseInt(row.dataset.idx);
-      if (currentItems[idx]) openModal(currentItems[idx], Object.keys(currentItems[idx]));
-    });
-    row.classList.remove('new-row');
+  els.tableBody.querySelectorAll('tr.clickable').forEach(row => {
+    row.addEventListener('click', (e) => { if (e.target.closest('.copy-btn')) return; const idx = parseInt(row.dataset.idx); if (allItems[idx]) openModal(allItems[idx], Object.keys(allItems[idx])); });
+  });
+  els.tableBody.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); copyResult(btn.dataset.json); });
   });
 }
 
 function appendCards(items) {
   const cardsHtml = items.map(item => {
-    const idx = currentItems.indexOf(item);
+    const idx = allItems.indexOf(item);
     const title = item.title || item.name || item.author || item.channel || '(no title)';
     const stars = item.stars ? '★'.repeat(Math.round(item.stars)) + '☆'.repeat(5 - Math.round(item.stars)) : '';
-    const source = item._source ? '<span class="card-source">' + item._source + '</span>' : '';
+    const source = item._source ? '<span class="source-badge source-' + item._source + '">' + (SOURCE_NAMES[item._source] || item._source) + '</span>' : '';
     const email = item.email ? '<span class="card-email">✉ ' + item.email + '</span>' : '';
     const phone = item.phone ? '<span class="card-phone">📞 ' + item.phone + '</span>' : '';
     const website = item.website || item.url || '';
     return '<div class="card new-card" data-idx="' + idx + '">' +
-      '<div class="card-title">' + title + '</div>' +
-      source +
+      '<button class="copy-btn" data-json=\'' + escapeAttr(JSON.stringify(item)) + '\' title="Copy">📋</button>' +
+      '<div class="card-title">' + title + '</div>' + source +
       (stars ? '<div class="card-stars">' + stars + '</div>' : '') +
       '<div class="card-meta">' +
       (item.price ? '<span>💰 ' + item.price + '</span>' : '') +
@@ -338,16 +333,23 @@ function appendCards(items) {
       (website ? '<a href="' + website + '" target="_blank" rel="noopener" class="card-link" onclick="event.stopPropagation()">🔗 Open</a>' : '') +
       '</div>';
   }).join('');
-
   els.cardsView.insertAdjacentHTML('beforeend', cardsHtml);
 
-  els.cardsView.querySelectorAll('.card.new-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const idx = parseInt(card.dataset.idx);
-      if (currentItems[idx]) openModal(currentItems[idx], Object.keys(currentItems[idx]));
-    });
-    card.classList.remove('new-card');
+  els.cardsView.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', (e) => { if (e.target.closest('.copy-btn') || e.target.closest('a')) return; const idx = parseInt(card.dataset.idx); if (allItems[idx]) openModal(allItems[idx], Object.keys(allItems[idx])); });
   });
+  els.cardsView.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); copyResult(btn.dataset.json); });
+  });
+}
+
+function copyResult(jsonStr) {
+  try {
+    const obj = JSON.parse(jsonStr);
+    const text = Object.entries(obj).filter(([k]) => k !== '_source').map(([k, v]) => k + ': ' + (v || '')).join('\n');
+    navigator.clipboard.writeText(text).then(() => showToast('Copied!', 'success')).catch(() => {});
+  } catch (_) {}
+  setTimeout(() => { if (els.toast.classList.contains('success')) els.toast.classList.add('hidden'); }, 1500);
 }
 
 function sortItems(items, key, asc) {
@@ -361,7 +363,6 @@ function sortItems(items, key, asc) {
   });
 }
 
-// View toggle
 els.viewToggle.addEventListener('click', () => {
   isCardView = !isCardView;
   els.tableView.classList.toggle('hidden', isCardView);
@@ -371,16 +372,14 @@ els.viewToggle.addEventListener('click', () => {
 
 // Modal
 function openModal(item, columns) {
-  els.modalBody.innerHTML = '<h3>' + (item.title || item.name || 'Details') + '</h3>' +
-    columns.filter(c => c !== 'searchString').map(c => {
-      const val = item[c];
-      if (val === null || val === undefined) return '';
-      const str = String(val);
-      const isUrl = str.match(/^https?:\/\//);
-      return '<div class="m-field"><div class="m-label">' + camelToTitle(c) + '</div><div class="m-value">' +
-        (isUrl ? '<a href="' + str + '" target="_blank" rel="noopener">' + str + '</a>' : str) +
-        '</div></div>';
-    }).join('');
+  els.modalBody.innerHTML = '<div class="modal-header"><h3>' + (item.title || item.name || 'Details') + '</h3>' +
+    (item._source ? '<span class="source-badge source-' + item._source + '">' + (SOURCE_NAMES[item._source] || item._source) + '</span>' : '') + '</div>' +
+    columns.filter(c => c !== '_source' && c !== 'searchString').map(c => {
+      const val = item[c]; if (val === null || val === undefined) return '';
+      const str = String(val); const isUrl = str.match(/^https?:\/\//);
+      return '<div class="m-field"><div class="m-label">' + camelToTitle(c) + '</div><div class="m-value">' + (isUrl ? '<a href="' + str + '" target="_blank" rel="noopener">' + str + '</a>' : str) + '</div></div>';
+    }).join('') +
+    '<button class="btn-secondary" style="margin-top:16px;width:100%" onclick="copyResult(\'' + escapeAttr(JSON.stringify(item)) + '\')">📋 Copy to Clipboard</button>';
   els.modal.classList.remove('hidden');
 }
 function closeModal() { els.modal.classList.add('hidden'); }
@@ -389,28 +388,45 @@ els.modalCloseX.addEventListener('click', closeModal);
 els.modal.addEventListener('click', (e) => { if (e.target === els.modal) closeModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
-// Export CSV
-els.exportCsvBtn.onclick = () => {
+// Export
+els.exportCsvBtn.onclick = () => { exportFormat('csv'); };
+els.exportJsonBtn.onclick = () => { exportFormat('json'); };
+
+function exportFormat(fmt) {
   if (!currentItems.length) return;
-  const columns = Object.keys(currentItems[0]);
-  const csvRows = [columns.join(',')];
-  currentItems.forEach(item => {
-    csvRows.push(columns.map(c => {
-      const val = item[c];
-      if (val === null || val === undefined) return '';
-      return '"' + String(val).replace(/"/g, '""') + '"';
-    }).join(','));
-  });
-  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+  const columns = Object.keys(currentItems[0]).filter(c => c !== '_source');
+  if (fmt === 'csv') {
+    const csvRows = [columns.join(',')];
+    currentItems.forEach(item => csvRows.push(columns.map(c => { const v = item[c]; return v === null || v === undefined ? '' : '"' + String(v).replace(/"/g, '""') + '"'; }).join(',')));
+    download(new Blob([csvRows.join('\n')], { type: 'text/csv' }), 'scrapex_results.csv');
+  } else {
+    const clean = currentItems.map(item => { const o = {}; columns.forEach(c => o[c] = item[c]); return o; });
+    download(new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' }), 'scrapex_results.json');
+  }
+}
+
+function download(blob, name) {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'scrapex_results.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-};
+  const a = document.createElement('a'); a.href = url; a.download = name;
+  a.click(); URL.revokeObjectURL(url);
+}
 
 function camelToTitle(str) {
   if (str === '_source') return 'Source';
   return str.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).replace(/_/g, ' ').trim();
 }
+
+function escapeAttr(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+// Restore saved results
+function restoreSaved() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (saved && saved.items && saved.items.length) {
+      allItems = saved.items; currentItems = saved.items;
+      buildFilters(saved.items); applyFilters();
+    }
+  } catch (_) {}
+}
+restoreSaved();

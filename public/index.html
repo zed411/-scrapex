@@ -18,8 +18,9 @@
 
     <form id="searchForm" class="search-box">
       <div class="search-input-wrap">
-        <input type="text" id="searchInput" placeholder='Ask AI what data to extract' required />
+        <input type="text" id="searchInput" placeholder='Ask AI what data to extract' required autocomplete="off" />
         <span id="aiBadge" class="ai-badge hidden">AI</span>
+        <div id="historyDropdown" class="history-dropdown hidden"></div>
       </div>
       <input type="text" id="locationInput" placeholder="Location (auto-detected)" class="location-input" />
       <input type="text" id="keywordsInput" placeholder="Keywords (auto-detected)" class="keywords-input" />
@@ -30,6 +31,8 @@
     <div id="toast" class="toast hidden"></div>
 
     <div id="statsBar" class="stats-bar hidden"></div>
+
+    <div id="filterBar" class="filter-bar hidden"></div>
 
     <div id="skeleton" class="skeleton hidden">
       <div class="skeleton-card"><div class="s-line w-60"></div><div class="s-line w-40"></div><div class="s-line w-80"></div></div>
@@ -42,6 +45,7 @@
         <h2>Results <span id="resultCount"></span></h2>
         <div class="results-actions">
           <button id="viewToggle" class="btn-icon" title="Toggle view">▦</button>
+          <button id="exportJsonBtn" class="btn-secondary">JSON</button>
           <button id="exportCsvBtn" class="btn-secondary">CSV</button>
         </div>
       </div>
