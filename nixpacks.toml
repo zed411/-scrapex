@@ -1,2 +1,2 @@
-[phases.playwright]
-nixPkgs = ["chromium", "libGL", "libxkbcommon", "libdrm", "mesa"]
+[phases.setup]
+nixPkgs = ["chromium", "libGL", "libdrm"]
