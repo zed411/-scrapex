@@ -4,12 +4,12 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
   const p = await browser.newPage();
   try {
     const query = locationQuery ? `${searchString} near ${locationQuery}` : searchString;
-    await p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 15000, waitUntil: 'domcontentloaded' });
-    await p.waitForTimeout(3000);
+    await p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 10000, waitUntil: 'domcontentloaded' });
+    await p.waitForTimeout(1500);
 
     const feed = p.locator('[role="feed"]');
-    for (let i = 0; i < 6; i++) {
-      try { await feed.evaluate(el => el.scrollBy(0, el.scrollHeight)); await p.waitForTimeout(400); } catch (_) {}
+    for (let i = 0; i < 4; i++) {
+      try { await feed.evaluate(el => el.scrollBy(0, el.scrollHeight)); await p.waitForTimeout(200); } catch (_) {}
     }
 
     // First pass: get business names, stars, phone, website, address
@@ -27,15 +27,14 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
         if (rt) stars = parseFloat(rt.match(/[\d.]+/)?.[0]) || 0;
 
         await link.click();
-        await p.waitForTimeout(600);
+        await p.waitForTimeout(300);
         const phone = await txt(p, 'button[data-tooltip*="phone"]', 'button[aria-label*="Phone"]');
         const website = await attr(p, 'a[data-tooltip*="website"]', 'a[data-item-id*="authority"]');
         const address = await txt(p, 'button[data-tooltip*="address"]', 'button[aria-label*="Address"]');
 
         add({ _source: 'maps', title: name || '', stars, address, phone, website, url: href || '' });
         places.push({ name, website, phone, address });
-        await p.goBack({ timeout: 10000 }).catch(() => {});
-        await p.waitForTimeout(400);
+        await p.goBack({ timeout: 3000 }).catch(() => {});
       } catch (_) {}
     }
 
@@ -45,9 +44,9 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
       if (aborted() || !place.website || visited.has(place.website)) continue;
       visited.add(place.website);
       try {
-        await p.goto(place.website, { timeout: 8000, waitUntil: 'domcontentloaded' }).catch(() => {});
-        await p.waitForTimeout(600);
-        const body = await p.locator('body').textContent({ timeout: 2000 }).catch(() => '');
+        await p.goto(place.website, { timeout: 5000, waitUntil: 'domcontentloaded' }).catch(() => {});
+        await p.waitForTimeout(300);
+        const body = await p.locator('body').textContent({ timeout: 1500 }).catch(() => '');
         if (body) {
           const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
           const badRe = /\.(png|jpg|jpeg|gif|svg|css|js|ico)$|@example\.|@\./i;
@@ -65,14 +64,14 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
 
 async function txt(page, ...sels) {
   for (const sel of sels) {
-    try { const t = await page.locator(sel).first().textContent({ timeout: 800 }).catch(() => ''); if (t) return t.replace(/[^\x20-\x7E\s]/g, '').trim(); } catch (_) {}
+    try { const t = await page.locator(sel).first().textContent({ timeout: 500 }).catch(() => ''); if (t) return t.replace(/[^\x20-\x7E\s]/g, '').trim(); } catch (_) {}
   }
   return '';
 }
 
 async function attr(page, ...sels) {
   for (const sel of sels) {
-    try { const a = await page.locator(sel).first().getAttribute('href', { timeout: 800 }).catch(() => ''); if (a) return a; } catch (_) {}
+    try { const a = await page.locator(sel).first().getAttribute('href', { timeout: 500 }).catch(() => ''); if (a) return a; } catch (_) {}
   }
   return '';
 }
