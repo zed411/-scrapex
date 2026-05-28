@@ -1,4 +1,4 @@
-const { chromium } = require('playwright');
+const { chromium } = require('playwright-core');
 
 async function scrape({ template, searchString, locationQuery, maxResults = 10 }) {
   switch (template) {
@@ -266,7 +266,12 @@ async function scrapeLeads({ searchString, maxResults }) {
 
 // Helpers
 async function launch() {
-  return await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+  const opts = { headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] };
+  const systemChromium = process.env.CHROMIUM_PATH || process.env.PLAYWRIGHT_CHROMIUM_PATH || '';
+  if (systemChromium) {
+    opts.executablePath = systemChromium;
+  }
+  return await chromium.launch(opts);
 }
 
 async function scrapeTikTok({ searchString, maxResults }) {

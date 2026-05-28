@@ -1,0 +1,5 @@
+[phases.setup]
+nixPkgs = ["chromium", "libGL", "libdrm", "libxkbcommon"]
+
+[phases.install]
+nixPkgs = ["chromium"]

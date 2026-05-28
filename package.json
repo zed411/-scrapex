@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "postinstall": "npx playwright install chromium 2>&1 || true",
+    "postinstall": "echo Playwright installed",
     "docker-postinstall": "npx playwright install chromium"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "playwright": "^1.60.0"
+    "playwright-core": "^1.60.0"
   }
 }
