@@ -266,19 +266,7 @@ async function scrapeLeads({ searchString, maxResults }) {
 
 // Helpers
 async function launch() {
-  const opts = { headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] };
-  // Try system Chromium if Playwright's bundled one isn't available
-  const paths = [
-    process.env.CHROMIUM_PATH,
-    process.env.PLAYWRIGHT_CHROMIUM_PATH,
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/snap/bin/chromium',
-  ].filter(Boolean);
-  for (const p of paths) {
-    try { require('fs').accessSync(p); opts.executablePath = p; break; } catch (_) {}
-  }
-  return await chromium.launch(opts);
+  return await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
 }
 
 async function scrapeTikTok({ searchString, maxResults }) {
