@@ -23,49 +23,24 @@ app.post('/api/scrape', async (req, res) => {
   const { searchString, locationQuery, maxCrawledPlaces = 10 } = req.body;
   if (!searchString) return res.status(400).json({ error: 'searchString is required' });
 
-  const jobId = crypto.randomBytes(8).toString('hex');
-  const job = { id: jobId, items: [], status: 'running', _ts: Date.now(), aborted: false };
-  jobs[jobId] = job;
+  try {
+    const items = [];
+    const add = (item) => items.push(item);
+    const aborted = () => false;
 
-  const max = Number(maxCrawledPlaces);
-  const templates = ['google-maps', 'leads'];
-
-  // Return job ID immediately — browser launches in background
-  res.json({ jobId });
-
-  // Launch ONE shared browser for all scrapers
-  chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] })
-    .then(browser => {
-      if (job.aborted) { browser.close().catch(() => {}); return; }
-      return Promise.all(templates.map(t =>
-        scrape({ template: t, searchString, locationQuery, maxResults: max, job, browser })
-          .catch(err => { console.error(`Scraper ${t} failed:`, err?.message); })
-      )).finally(() => {
-        browser.close().catch(() => {});
-        if (!job.aborted) job.status = 'done';
-      });
-    })
-    .catch(err => { job.status = 'error'; job.error = err.message; console.error('Browser launch error:', err); });
-});
-
-app.get('/api/scrape/:jobId', (req, res) => {
-  const job = jobs[req.params.jobId];
-  if (!job) return res.status(404).json({ error: 'Job not found' });
-  res.json({ status: job.status, items: job.items, error: job.error });
-});
-
-app.delete('/api/scrape/:jobId', (req, res) => {
-  const job = jobs[req.params.jobId];
-  if (job) { job.aborted = true; job.status = 'stopped'; }
-  res.json({ ok: true });
-});
-
-setInterval(() => {
-  const now = Date.now();
-  for (const id of Object.keys(jobs)) {
-    if (jobs[id].status !== 'running' && (now - (jobs[id]._ts || now)) > 600000) delete jobs[id];
+    const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    try {
+      await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted, browser);
+      await scrapeLeads({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted, browser);
+    } finally {
+      await browser.close().catch(() => {});
+    }
+    res.json({ status: 'SUCCEEDED', items });
+  } catch (err) {
+    console.error('Scrape error:', err);
+    res.status(500).json({ error: err.message });
   }
-}, 60000);
+});
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
