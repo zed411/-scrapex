@@ -6,6 +6,7 @@ async function scrape({ template, searchString, locationQuery, maxResults = 10 }
     case 'hackernews': return scrapeHN({ searchString, maxResults });
     case 'wikipedia': return scrapeWikipedia({ searchString, maxResults });
     case 'tiktok': return scrapeTikTok({ searchString, maxResults });
+    case 'leads': return scrapeLeads({ searchString, maxResults });
     default: return scrapeGoogleMaps({ searchString, locationQuery, maxResults });
   }
 }
@@ -194,6 +195,75 @@ async function scrapeWikipedia({ searchString, maxResults }) {
   return results;
 }
 
+async function scrapeLeads({ searchString, maxResults }) {
+  const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const phoneRe = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+
+  // First, get business listings from Google Maps
+  const businesses = await scrapeGoogleMaps({ searchString, locationQuery: '', maxResults });
+  const results = [];
+
+  if (businesses.length === 0) return results;
+
+  const browser = await launch();
+  const page = await browser.newPage();
+
+  try {
+    for (const biz of businesses) {
+      const lead = {
+        name: biz.title || '',
+        website: biz.website || '',
+        phone: biz.phone || '',
+        email: '',
+        address: biz.address || '',
+        stars: biz.stars || 0,
+        reviews: biz.reviewsCount || 0,
+      };
+
+      // Visit website to find email
+      if (biz.website) {
+        try {
+          await page.goto(biz.website, { timeout: 10000, waitUntil: 'domcontentloaded' });
+          await page.waitForTimeout(1500);
+          const text = await page.locator('body').textContent({ timeout: 5000 }).catch(() => '');
+
+          if (text) {
+            const emails = [...text.matchAll(emailRe)]
+              .map(m => m[0])
+              .filter(e => !e.includes('.png') && !e.includes('.jpg') && !e.includes('.svg') && !e.includes('@example') && e.split('@')[1]?.includes('.'));
+
+            if (emails.length > 0) {
+              lead.email = emails[0];
+            } else {
+              // Try contact page
+              const contactLinks = await page.locator('a[href*="contact" i], a[href*="about" i]').all();
+              if (contactLinks.length > 0) {
+                const href = await contactLinks[0].getAttribute('href').catch(() => '');
+                if (href) {
+                  const url = href.startsWith('http') ? href : new URL(href, biz.website).href;
+                  await page.goto(url, { timeout: 10000, waitUntil: 'domcontentloaded' }).catch(() => {});
+                  await page.waitForTimeout(1000);
+                  const contactText = await page.locator('body').textContent({ timeout: 5000 }).catch(() => '');
+                  if (contactText) {
+                    const contactEmails = [...contactText.matchAll(emailRe)].map(m => m[0]).filter(e => !e.includes('.png') && e.includes('@'));
+                    if (contactEmails.length > 0) lead.email = contactEmails[0];
+                  }
+                }
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      results.push(lead);
+    }
+  } finally {
+    await browser.close();
+  }
+
+  return results;
+}
+
 // Helpers
 async function launch() {
   return await chromium.launch({ headless: true, args: ['--no-sandbox'] });
@@ -280,6 +350,7 @@ async function scrapeTikTok({ searchString, maxResults }) {
         }
       }
     }
+  }
   } finally {
     await browser.close();
   }
