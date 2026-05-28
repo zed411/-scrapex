@@ -226,30 +226,11 @@ function stopDone() {
 els.stopBtn.addEventListener('click', stopScrape);
 
 // Filters
-function buildFilters(items) {
-  const sources = [...new Set(items.map(i => i._source).filter(Boolean))];
-  if (!sources.length) { els.filterBar.classList.add('hidden'); return; }
-  sources.forEach(s => { if (activeFilters[s] === undefined) activeFilters[s] = true; });
-  els.filterBar.innerHTML = sources.map(s =>
-    '<div class="filter-chip ' + (activeFilters[s] ? 'on' : '') + '" data-source="' + s + '">' +
-    '<span class="filter-dot" style="background:' + (SOURCE_COLORS[s] || '#888') + '"></span>' +
-    (SOURCE_NAMES[s] || s) + '</div>'
-  ).join('');
-  els.filterBar.classList.remove('hidden');
-
-  els.filterBar.querySelectorAll('.filter-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const s = chip.dataset.source;
-      activeFilters[s] = !activeFilters[s];
-      chip.classList.toggle('on', activeFilters[s]);
-      applyFilters();
-    });
-  });
+function buildFilters(_items) {
+  // Filter bar removed
 }
-
 function applyFilters() {
-  const active = Object.entries(activeFilters).filter(([, v]) => v).map(([k]) => k);
-  currentItems = active.length ? allItems.filter(i => active.includes(i._source)) : allItems;
+  currentItems = allItems;
   if (!currentItems.length) { els.results.classList.add('hidden'); return; }
   els.results.classList.remove('hidden');
   setupTable(currentItems);
