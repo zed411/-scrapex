@@ -44,7 +44,7 @@ app.post('/api/scrape', async (req, res) => {
         if (!job.aborted) job.status = 'done';
       });
     })
-    .catch(() => { job.status = 'error'; job.error = 'Browser launch failed'; });
+    .catch(err => { job.status = 'error'; job.error = err.message; console.error('Browser error:', err); });
 });
 
 app.get('/api/scrape/:jobId', (req, res) => {
