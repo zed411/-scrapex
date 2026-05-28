@@ -94,7 +94,8 @@ async function scrapeLeads({ searchString, locationQuery, maxResults }, add, abo
           }
         }
       } catch (_) {}
-      add(lead);
+      // Only add if we found actual contact data
+      if (lead.email || lead.phone || lead.website) add(lead);
     }
   } finally { await p.close(); }
 }
