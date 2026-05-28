@@ -187,7 +187,12 @@ function pollResults() {
     try {
       const res = await fetch(`${API_URL}/${currentJobId}`);
       const data = await res.json();
-      if (!res.ok) { clearInterval(pollTimer); stopDone(); showToast('Error polling', 'error'); return; }
+      if (!res.ok) {
+        clearInterval(pollTimer);
+        if (res.status === 404) showToast('Server restarted — try again', 'error');
+        else showToast('Connection lost', 'error');
+        stopDone(); return;
+      }
       const items = data.items || [];
       if (items.length > prevCount) {
         allItems = items;
@@ -204,7 +209,7 @@ function pollResults() {
         else if (items.length === 0) showToast('No results found', 'error');
         else showToast(`Done — ${items.length} results`, 'success');
       }
-    } catch (_) { clearInterval(pollTimer); stopDone(); }
+    } catch (_) { clearInterval(pollTimer); stopDone(); showToast('Connection lost', 'error'); }
   }, 800);
 }
 
