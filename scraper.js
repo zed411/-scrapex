@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted) {
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
@@ -6,13 +7,13 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
   try {
     const query = locationQuery ? `${searchString} near ${locationQuery}` : searchString;
     await p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 15000, waitUntil: 'domcontentloaded' });
-    await p.waitForTimeout(4000);
+    await sleep(4000);
 
     const feed = await p.$('[role="feed"]');
     if (feed) {
       for (let i = 0; i < 3; i++) {
         await feed.evaluate(el => el.scrollBy(0, el.scrollHeight)).catch(() => {});
-        await p.waitForTimeout(500);
+        await sleep(500);
       }
 
       const children = await feed.$$(':scope > div');
@@ -28,7 +29,7 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
           const stars = starsSpan ? parseFloat((await starsSpan.evaluate(el => el.getAttribute('aria-label')) || '').match(/[\d.]+/)?.[0] || 0) : 0;
 
           await link.click();
-          await p.waitForTimeout(800);
+          await sleep(800);
           const phone = await txt(p, 'button[data-tooltip*="phone"]', 'button[aria-label*="Phone"]');
           const website = await attr(p, 'a[data-tooltip*="website"]', 'a[data-item-id*="authority"]');
           const address = await txt(p, 'button[data-tooltip*="address"]', 'button[aria-label*="Address"]');
@@ -36,7 +37,7 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
           add({ _source: 'maps', title: name || '', stars, address, phone, website, url: href || '' });
           count++;
           await p.goBack({ timeout: 10000 }).catch(() => {});
-          await p.waitForTimeout(500);
+          await sleep(500);
         } catch (_) {}
       }
     }
@@ -50,11 +51,11 @@ async function scrapeLeads({ searchString, locationQuery, maxResults }, add, abo
   try {
     const query = locationQuery ? `${searchString} near ${locationQuery}` : searchString;
     await p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 15000, waitUntil: 'domcontentloaded' });
-    await p.waitForTimeout(3000);
+    await sleep(3000);
 
     const feed = await p.$('[role="feed"]');
     if (feed) {
-      for (let s = 0; s < 3; s++) { await feed.evaluate(el => el.scrollBy(0, el.scrollHeight)).catch(() => {}); await p.waitForTimeout(400); }
+      for (let s = 0; s < 3; s++) { await feed.evaluate(el => el.scrollBy(0, el.scrollHeight)).catch(() => {}); await sleep(400); }
       const children = await feed.$$(':scope > div');
       for (const child of children) {
         if (businessResults.length >= maxResults) break;
@@ -78,14 +79,14 @@ async function scrapeLeads({ searchString, locationQuery, maxResults }, add, abo
       const lead = { _source: 'leads', name: biz.title || '', website: '', phone: '', email: '', linkedin: '', address: '' };
       try {
         await p.goto(biz.url, { timeout: 8000, waitUntil: 'domcontentloaded' }).catch(() => {});
-        await p.waitForTimeout(1000);
+        await sleep(1000);
         lead.website = await attr(p, 'a[data-tooltip*="website"]', 'a[data-item-id*="authority"]');
         lead.address = await txt(p, 'button[data-tooltip*="address"]', 'button[aria-label*="Address"]');
         lead.phone = await txt(p, 'button[data-tooltip*="phone"]', 'button[aria-label*="Phone"]');
 
         if (lead.website) {
           await p.goto(lead.website, { timeout: 6000, waitUntil: 'domcontentloaded' }).catch(() => {});
-          await p.waitForTimeout(600);
+          await sleep(600);
           const body = await p.evaluate(() => document.body.textContent || '');
           if (body) {
             lead.email = ([...body.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e)))[0] || '';
