@@ -264,7 +264,7 @@ function setupTable(items) {
 
   els.tableHead.innerHTML = '<tr>' + columns.map(c =>
     '<th data-key="' + c + '" class="' + (sortKey === c ? 'sorted' : '') + '">' + camelToTitle(c) + (sortKey === c ? (sortAsc ? ' ▲' : ' ▼') : '') + '</th>'
-  ).join('') + '<th></th></tr>';
+  ).join('') + '</tr>';
   els.tableHead.querySelectorAll('th').forEach(th => {
     th.addEventListener('click', () => {
       const key = th.dataset.key;
@@ -294,17 +294,14 @@ function appendTableRows(items) {
       if (val === null || val === undefined) return '<td></td>';
       if (typeof val === 'object') return '<td>' + JSON.stringify(val).slice(0, 200) + '</td>';
       const str = String(val);
-      if (str.match(/^https?:\/\//)) return '<td><a href="' + str + '" target="_blank" rel="noopener">' + str.substring(0, 50) + '…</a></td>';
-      return '<td>' + str.slice(0, 100) + '</td>';
-    }).join('') + '<td><button class="copy-btn" data-json=\'' + escapeAttr(JSON.stringify(item)) + '\' title="Copy">📋</button></td></tr>';
+      if (str.match(/^https?:\/\//)) return '<td><a href="' + str + '" target="_blank" rel="noopener">' + str + '</a></td>';
+      return '<td>' + str + '</td>';
+    }).join('') + '</tr>';
   }).join('');
   els.tableBody.insertAdjacentHTML('beforeend', rows);
 
   els.tableBody.querySelectorAll('tr.clickable').forEach(row => {
     row.addEventListener('click', (e) => { if (e.target.closest('.copy-btn')) return; const idx = parseInt(row.dataset.idx); if (allItems[idx]) openModal(allItems[idx], Object.keys(allItems[idx])); });
-  });
-  els.tableBody.querySelectorAll('.copy-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => { e.stopPropagation(); copyResult(btn.dataset.json); });
   });
 }
 
