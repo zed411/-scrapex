@@ -2,12 +2,15 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
   ? '/api/scrape'
   : 'https://scrapex-production-2b35.up.railway.app/api/scrape';
 
+const YT_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none"><rect x="2" y="4" width="20" height="16" rx="4" fill="#FF0000"/><polygon points="10,8 16,12 10,16" fill="white"/></svg>';
+const TT_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.58 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.33 0 .64.06.94.15V8.77a6.31 6.31 0 0 0-.94-.08 6.33 6.33 0 0 0-6.33 6.33 6.33 6.33 0 0 0 6.33 6.33 6.33 6.33 0 0 0 6.33-6.33V9.67a8.3 8.3 0 0 0 4.77 1.49v-3.4a4.83 4.83 0 0 1-1.01-.07z" fill="#000"/><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.58 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.33 0 .64.06.94.15V8.77a6.31 6.31 0 0 0-.94-.08 6.33 6.33 0 0 0-6.33 6.33 6.33 6.33 0 0 0 6.33 6.33 6.33 6.33 0 0 0 6.33-6.33V9.67a8.3 8.3 0 0 0 4.77 1.49v-3.4a4.83 4.83 0 0 1-1.01-.07z" fill="#FF004F"/><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.58 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.33 0 .64.06.94.15V8.77a6.31 6.31 0 0 0-.94-.08 6.33 6.33 0 0 0-6.33 6.33 6.33 6.33 0 0 0 6.33 6.33 6.33 6.33 0 0 0 6.33-6.33V9.67a8.3 8.3 0 0 0 4.77 1.49v-3.4a4.83 4.83 0 0 1-1.01-.07z" fill="#00F2EA"/></svg>';
+
 const TEMPLATES = [
   { id: 'google-maps', name: 'Maps', icon: '📍', desc: 'Businesses & places', search: 'e.g. "Coffee shops"', loc: true },
-  { id: 'youtube', name: 'YouTube', icon: '▶️', desc: 'Videos & channels', search: 'e.g. "tech reviews"', loc: false },
+  { id: 'youtube', name: 'YouTube', icon: YT_ICON, desc: 'Videos & channels', search: 'e.g. "tech reviews"', loc: false },
   { id: 'hackernews', name: 'Hacker News', icon: '📊', desc: 'Posts & scores', search: 'e.g. "AI"', loc: false },
   { id: 'wikipedia', name: 'Wikipedia', icon: '📚', desc: 'Articles & summaries', search: 'e.g. "Python"', loc: false },
-  { id: 'tiktok', name: 'TikTok', icon: '🎵', desc: 'Videos & creators', search: 'e.g. "music"', loc: false },
+  { id: 'tiktok', name: 'TikTok', icon: TT_ICON, desc: 'Videos & creators', search: 'e.g. "music"', loc: false },
   { id: 'leads', name: 'Leads', icon: '📧', desc: 'Find emails & contacts', search: 'e.g. "Plumber in Chicago"', loc: true },
 ];
 
