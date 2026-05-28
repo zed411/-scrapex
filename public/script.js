@@ -237,8 +237,22 @@ els.searchForm.addEventListener('submit', async (e) => {
     const data = await res.json();
     if (!res.ok) { showToast(data.error || 'Failed', 'error'); stopDone(); return; }
 
-    currentJobId = data.jobId;
-    pollResults();
+    // Handle both new job-based API and old synchronous API
+    if (data.jobId) {
+      currentJobId = data.jobId;
+      pollResults();
+    } else if (data.items) {
+      // Old API — results are already here
+      currentItems = data.items;
+      prevCount = data.items.length;
+      hideSkeleton();
+      if (data.items.length === 0) { showToast('No results found', 'error'); stopDone(); return; }
+      setupTable(data.items);
+      els.results.classList.remove('hidden');
+      showStats(data.items);
+      showToast(`Found ${data.items.length} results`, 'success');
+      stopDone();
+    }
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
     stopDone();
