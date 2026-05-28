@@ -1,6 +1,5 @@
 const express = require('express');
 const path = require('path');
-const { chromium } = require('playwright');
 const { scrapeGoogleMaps, scrapeLeads } = require('./scraper');
 
 const app = express();
@@ -16,19 +15,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/api/health', async (req, res) => {
-  let browserOk = false, googleTitle = '';
-  try {
-    const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    browserOk = true;
-    const page = await browser.newPage();
-    await page.goto('https://www.google.com/maps/search/coffee/', { timeout: 10000, waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(2000);
-    googleTitle = await page.title().catch(() => 'error');
-    await browser.close();
-  } catch (e) { googleTitle = e.message; }
-  res.json({ ok: true, browserOk, googleTitle });
-});
+app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.post('/api/scrape', async (req, res) => {
   const { searchString, locationQuery, maxCrawledPlaces = 10 } = req.body;
@@ -39,13 +26,10 @@ app.post('/api/scrape', async (req, res) => {
     const add = (item) => items.push(item);
     const aborted = () => false;
 
-    const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    try {
-      await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted, browser);
-      await scrapeLeads({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted, browser);
-    } finally {
-      await browser.close().catch(() => {});
-    }
+    // Each scraper manages its own browser
+    await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted);
+    await scrapeLeads({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted);
+
     res.json({ status: 'SUCCEEDED', items });
   } catch (err) {
     console.error('Scrape error:', err);
