@@ -13,6 +13,7 @@ const els = {
   searchForm: document.getElementById('searchForm'),
   searchInput: document.getElementById('searchInput'),
   locationInput: document.getElementById('locationInput'),
+  keywordsInput: document.getElementById('keywordsInput'),
   maxResults: document.getElementById('maxResults'),
   searchBtn: document.getElementById('searchBtn'),
   stopBtn: document.getElementById('stopBtn'),
@@ -31,6 +32,7 @@ const els = {
   modalBody: document.getElementById('modalBody'),
   modalClose: document.getElementById('modalClose'),
   modalCloseX: document.getElementById('modalCloseX'),
+  aiBadge: document.getElementById('aiBadge'),
 };
 
 // Toast
@@ -61,48 +63,6 @@ function showStats(items) {
 }
 function hideStats() { els.statsBar.classList.add('hidden'); }
 function hideResults() { els.results.classList.add('hidden'); hideStats(); }
-
-// Search
-els.searchForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const query = els.searchInput.value.trim();
-  const location = els.locationInput.value.trim();
-  const max = els.maxResults.value || 5;
-  if (!query) return;
-
-  // Stop previous
-  if (currentJobId) stopScrape();
-
-  currentItems = [];
-  prevCount = 0;
-  els.tableBody.innerHTML = '';
-  els.cardsView.innerHTML = '';
-  els.searchBtn.disabled = true;
-  els.searchBtn.textContent = 'Scraping…';
-  els.stopBtn.classList.remove('hidden');
-  hideResults();
-  hideToast();
-  showSkeleton();
-
-  try {
-    const body = { searchString: query, maxCrawledPlaces: parseInt(max) };
-    if (location) body.locationQuery = location;
-
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (!res.ok) { showToast(data.error || 'Failed', 'error'); stopDone(); return; }
-
-    currentJobId = data.jobId;
-    pollResults();
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-    stopDone();
-  }
-});
 
 let prevCount = 0;
 
@@ -165,7 +125,125 @@ function stopDone() {
 
 els.stopBtn.addEventListener('click', stopScrape);
 
-// First render - set up table header and empty body
+// Smart query parser
+function parseQuery(input) {
+  let text = input.trim();
+  if (!text || text.length < 5) return { searchTerm: text, location: '', keywords: '' };
+
+  const locRegex = /\b(?:in|near|around|at)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*)/;
+  const locMatch = text.match(locRegex);
+
+  let location = '';
+  if (locMatch) {
+    location = locMatch[1].trim();
+    text = text.replace(locMatch[0], '').trim();
+  }
+
+  text = text.replace(/^(?:find|find me|search|looking for|show me|get|i want|i need|give me|can you find|can you get)\s+/i, '');
+
+  let searchTerm = text;
+  let keywords = '';
+
+  const splitRegex = /\s+(?:with|that|that have|that are|near|where|which|and have|and are)\s+/i;
+  const splitMatch = text.match(splitRegex);
+  if (splitMatch) {
+    searchTerm = text.slice(0, splitMatch.index).trim();
+    keywords = text.slice(splitMatch.index + splitMatch[0].length).trim();
+  }
+
+  searchTerm = searchTerm.replace(/[.,!?]+$/g, '').trim();
+  if (keywords) keywords = keywords.replace(/[.,!?]+$/g, '').trim();
+
+  const isNatural = !!(locMatch || splitMatch || input.match(/^(?:find|search|looking|show|get|i want|i need|give|can you)/i));
+
+  return { searchTerm, location, keywords, isNatural };
+}
+
+let parseTimer = null;
+els.searchInput.addEventListener('input', () => {
+  clearTimeout(parseTimer);
+  parseTimer = setTimeout(() => {
+    const input = els.searchInput.value;
+    const parsed = parseQuery(input);
+
+    if (parsed.isNatural && parsed.searchTerm) {
+      els.aiBadge.classList.remove('hidden');
+      if (parsed.location) {
+        els.locationInput.value = parsed.location;
+        els.locationInput.classList.add('parsed-highlight');
+      }
+      if (parsed.keywords) {
+        els.keywordsInput.value = parsed.keywords;
+        els.keywordsInput.classList.add('parsed-highlight');
+      }
+    } else {
+      els.aiBadge.classList.add('hidden');
+    }
+  }, 400);
+});
+
+els.searchInput.addEventListener('focus', () => { els.aiBadge.classList.add('hidden'); });
+els.locationInput.addEventListener('focus', () => els.locationInput.classList.remove('parsed-highlight'));
+els.keywordsInput.addEventListener('focus', () => els.keywordsInput.classList.remove('parsed-highlight'));
+
+// Update search to use parsed values
+els.searchForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  let query = els.searchInput.value.trim();
+  let location = els.locationInput.value.trim();
+  const max = els.maxResults.value || 5;
+  if (!query) return;
+
+  // Parse if fields are empty
+  const parsed = parseQuery(query);
+  if (!location && parsed.location) {
+    location = parsed.location;
+    query = parsed.searchTerm;
+  }
+  if (!location) {
+    const parts = query.split(/\s+/);
+    // If last word looks like a location (capitalized or common city pattern)
+    const lastWord = parts[parts.length - 1];
+    if (lastWord && /^[A-Z][a-z]/.test(lastWord) && parts.length > 1) {
+      location = lastWord;
+      query = parts.slice(0, -1).join(' ');
+    }
+  }
+
+  if (!query) return;
+
+  if (currentJobId) stopScrape();
+
+  currentItems = [];
+  prevCount = 0;
+  els.tableBody.innerHTML = '';
+  els.cardsView.innerHTML = '';
+  els.searchBtn.disabled = true;
+  els.searchBtn.textContent = 'Scraping…';
+  els.stopBtn.classList.remove('hidden');
+  hideResults();
+  hideToast();
+  showSkeleton();
+
+  try {
+    const body = { searchString: query, maxCrawledPlaces: parseInt(max) };
+    if (location) body.locationQuery = location;
+
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed', 'error'); stopDone(); return; }
+
+    currentJobId = data.jobId;
+    pollResults();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+    stopDone();
+  }
+});
 function setupTable(items) {
   const keys = new Set();
   items.forEach(item => Object.keys(item).forEach(k => keys.add(k)));

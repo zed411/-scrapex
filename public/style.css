@@ -32,6 +32,11 @@ h1 { font-size: 2rem; font-weight: 800; letter-spacing: -.5px; background: linea
 .search-box input { background: #13131f; border: 1.5px solid #2a2a40; color: #e1e1f0; border-radius: 10px; font-size: .95rem; padding: 13px 16px; transition: border-color .2s, box-shadow .2s; width: 100%; }
 .search-box input::placeholder { color: #5a5a7a; }
 .search-box input:focus, .search-box select:focus { outline: none; border-color: #4285f4; box-shadow: 0 0 0 3px rgba(66,133,244,.1); }
+.search-input-wrap { position: relative; width: 100%; }
+.search-input-wrap input { width: 100%; padding-right: 50px !important; }
+.ai-badge { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: linear-gradient(135deg,#7c3aed,#4285f4); color: #fff; font-size: .65rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; letter-spacing: .5px; pointer-events: none; opacity: .9; }
+.ai-badge.hidden { display: none; }
+.parsed-highlight { border-color: #7c3aed !important; box-shadow: 0 0 0 3px rgba(124,58,237,.15) !important; }
 .location-input { width: 100%; }
 .keywords-input { width: 100%; }
 .max-input { width: 100%; padding: 13px 16px; text-align: left; appearance: none; cursor: pointer; border-radius: 10px; border: 1.5px solid #2a2a40; color: #e1e1f0; font-size: .95rem; font-family: inherit; background: #13131f url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b8ba7'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 14px center; }
