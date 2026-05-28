@@ -18,6 +18,22 @@ app.use((req, res, next) => {
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
+app.get('/api/diag', async (req, res) => {
+  try {
+    const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    await page.goto('https://www.google.com/maps/search/coffee/', { timeout: 10000, waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(3000);
+    const title = await page.title();
+    const feed = await page.locator('[role="feed"]').count();
+    const text = await page.locator('body').textContent().catch(() => '');
+    await browser.close();
+    res.json({ title, feed, length: text?.length, snippet: text?.substring(0, 300) });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
+
 app.post('/api/scrape', async (req, res) => {
   const { searchString, locationQuery, maxCrawledPlaces = 10 } = req.body;
   if (!searchString) return res.status(400).json({ error: 'searchString is required' });
