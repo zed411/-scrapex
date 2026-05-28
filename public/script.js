@@ -7,9 +7,9 @@ const TT_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none"><pa
 
 const TEMPLATES = [
   { id: 'google-maps', name: 'Maps', icon: '📍', desc: 'Businesses & places', search: 'e.g. "Coffee shops"', loc: true },
-  { id: 'youtube', name: 'YouTube', icon: YT_ICON, desc: 'Videos & channels', search: 'e.g. "tech reviews"', loc: false },
-  { id: 'tiktok', name: 'TikTok', icon: TT_ICON, desc: 'Videos & creators', search: 'e.g. "music"', loc: false },
   { id: 'leads', name: 'Leads', icon: '📧', desc: 'Find emails & contacts', search: 'e.g. "Plumber in Chicago"', loc: true },
+  { id: 'tiktok', name: 'TikTok', icon: TT_ICON, desc: 'Videos & creators', search: 'e.g. "music"', loc: false },
+  { id: 'youtube', name: 'YouTube', icon: YT_ICON, desc: 'Videos & channels', search: 'e.g. "tech reviews"', loc: false },
 ];
 
 let activeTemplate = 'google-maps';

@@ -107,15 +107,36 @@ async function scrapeYouTube({ searchString, maxResults }) {
 async function scrapeLeads({ searchString, maxResults }) {
   const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const phoneRe = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+  const socialRe = {
+    linkedin: /linkedin\.com\/(?:company|in)\/[a-zA-Z0-9_-]+/gi,
+    twitter: /(?:twitter|x)\.com\/[a-zA-Z0-9_]+/gi,
+    instagram: /instagram\.com\/[a-zA-Z0-9_.]+/gi,
+  };
+  const badEmails = /\.(png|jpg|jpeg|gif|svg|css|js|ico|woff|ttf|eot)$|@example\.|@domain\.|@your\.|@email\.|@company\.|@site\.|@website\.|@test\.|@\./i;
 
-  // First, get business listings from Google Maps
   const businesses = await scrapeGoogleMaps({ searchString, locationQuery: '', maxResults });
+  if (businesses.length === 0) return [];
+
   const results = [];
-
-  if (businesses.length === 0) return results;
-
   const browser = await launch();
   const page = await browser.newPage();
+  const contactPaths = ['/contact', '/contact-us', '/contact.html', '/about', '/about-us', '/about.html', '/team', '/support'];
+
+  function cleanEmail(e) {
+    const s = e.trim().toLowerCase();
+    if (badEmails.test(s)) return '';
+    if (s.includes('@.') || s.startsWith('.') || s.endsWith('.')) return '';
+    return s;
+  }
+
+  function getEmails(text) {
+    return [...(text || '').matchAll(emailRe)].map(m => cleanEmail(m[0])).filter(Boolean);
+  }
+
+  function getSocial(text, platform) {
+    const matches = [...(text || '').matchAll(socialRe[platform])];
+    return matches.length > 0 ? `https://${matches[0][0].toLowerCase()}` : '';
+  }
 
   try {
     for (const biz of businesses) {
@@ -124,40 +145,50 @@ async function scrapeLeads({ searchString, maxResults }) {
         website: biz.website || '',
         phone: biz.phone || '',
         email: '',
+        linkedin: '',
+        twitter: '',
+        instagram: '',
         address: biz.address || '',
+        category: biz.category || '',
         stars: biz.stars || 0,
-        reviews: biz.reviewsCount || 0,
       };
 
-      // Visit website to find email
       if (biz.website) {
         try {
-          await page.goto(biz.website, { timeout: 10000, waitUntil: 'domcontentloaded' });
-          await page.waitForTimeout(1500);
-          const text = await page.locator('body').textContent({ timeout: 5000 }).catch(() => '');
+          await page.goto(biz.website, { timeout: 8000, waitUntil: 'domcontentloaded' }).catch(() => {});
+          await page.waitForTimeout(1200);
+          let bodyText = await page.locator('body').textContent({ timeout: 3000 }).catch(() => '');
 
-          if (text) {
-            const emails = [...text.matchAll(emailRe)]
-              .map(m => m[0])
-              .filter(e => !e.includes('.png') && !e.includes('.jpg') && !e.includes('.svg') && !e.includes('@example') && e.split('@')[1]?.includes('.'));
+          if (bodyText) {
+            const emails = getEmails(bodyText);
+            lead.email = emails[0] || '';
+            lead.linkedin = getSocial(bodyText, 'linkedin');
+            lead.twitter = getSocial(bodyText, 'twitter');
+            lead.instagram = getSocial(bodyText, 'instagram');
 
-            if (emails.length > 0) {
-              lead.email = emails[0];
-            } else {
-              // Try contact page
-              const contactLinks = await page.locator('a[href*="contact" i], a[href*="about" i]').all();
-              if (contactLinks.length > 0) {
-                const href = await contactLinks[0].getAttribute('href').catch(() => '');
-                if (href) {
-                  const url = href.startsWith('http') ? href : new URL(href, biz.website).href;
-                  await page.goto(url, { timeout: 10000, waitUntil: 'domcontentloaded' }).catch(() => {});
-                  await page.waitForTimeout(1000);
-                  const contactText = await page.locator('body').textContent({ timeout: 5000 }).catch(() => '');
+            // Extract phone from website if Maps didn't have it
+            if (!lead.phone) {
+              const phones = [...bodyText.matchAll(phoneRe)].map(m => m[0]);
+              lead.phone = phones[0] || '';
+            }
+
+            // If no email found, try contact/about pages
+            if (!lead.email) {
+              for (const path of contactPaths) {
+                const contactUrl = new URL(path, biz.website).href;
+                try {
+                  await page.goto(contactUrl, { timeout: 5000, waitUntil: 'domcontentloaded' }).catch(() => {});
+                  await page.waitForTimeout(800);
+                  const contactText = await page.locator('body').textContent({ timeout: 3000 }).catch(() => '');
                   if (contactText) {
-                    const contactEmails = [...contactText.matchAll(emailRe)].map(m => m[0]).filter(e => !e.includes('.png') && e.includes('@'));
-                    if (contactEmails.length > 0) lead.email = contactEmails[0];
+                    const ce = getEmails(contactText);
+                    if (ce.length > 0) { lead.email = ce[0]; break; }
+                    if (!lead.phone) {
+                      const cp = [...contactText.matchAll(phoneRe)].map(m => m[0]);
+                      if (cp.length > 0) lead.phone = cp[0];
+                    }
                   }
-                }
+                } catch (_) {}
               }
             }
           }
@@ -169,7 +200,6 @@ async function scrapeLeads({ searchString, maxResults }) {
   } finally {
     await browser.close();
   }
-
   return results;
 }
 
