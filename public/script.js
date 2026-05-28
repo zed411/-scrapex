@@ -30,7 +30,6 @@ const els = {
   cardsView: document.getElementById('cardsView'),
   resultCount: document.getElementById('resultCount'),
   exportCsvBtn: document.getElementById('exportCsvBtn'),
-  exportJsonBtn: document.getElementById('exportJsonBtn'),
   modal: document.getElementById('modal'),
   modalBody: document.getElementById('modalBody'),
   modalClose: document.getElementById('modalClose'),
@@ -239,6 +238,7 @@ function applyFilters() {
 // Setup table
 function setupTable(items) {
   els.cardsView.innerHTML = '';
+  els.cardsView.classList.remove('hidden');
   appendCards(sortItems(items, sortKey, sortAsc));
   els.resultCount.textContent = '(' + items.length + ')';
 }
@@ -320,19 +320,14 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal
 
 // Export
 els.exportCsvBtn.onclick = () => { exportFormat('csv'); };
-els.exportJsonBtn.onclick = () => { exportFormat('json'); };
 
 function exportFormat(fmt) {
   if (!currentItems.length) return;
   const columns = Object.keys(currentItems[0]).filter(c => c !== '_source');
-  if (fmt === 'csv') {
-    const csvRows = [columns.join(',')];
-    currentItems.forEach(item => csvRows.push(columns.map(c => { const v = item[c]; return v === null || v === undefined ? '' : '"' + String(v).replace(/"/g, '""') + '"'; }).join(',')));
-    download(new Blob([csvRows.join('\n')], { type: 'text/csv' }), 'scrapex_results.csv');
-  } else {
-    const clean = currentItems.map(item => { const o = {}; columns.forEach(c => o[c] = item[c]); return o; });
-    download(new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' }), 'scrapex_results.json');
-  }
+  const csvRows = [columns.join(',')];
+  currentItems.forEach(item => csvRows.push(columns.map(c => { const v = item[c]; return v === null || v === undefined ? '' : '"' + String(v).replace(/"/g, '""') + '"'; }).join(',')));
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+  download(blob, 'scrapex_results.csv');
 }
 
 function download(blob, name) {
