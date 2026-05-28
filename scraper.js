@@ -1,18 +1,21 @@
 const { chromium } = require('playwright');
 
-async function scrape({ template, searchString, locationQuery, maxResults = 10, job }) {
+async function scrape({ template, searchString, locationQuery, maxResults = 10, job, browser }) {
   const add = (item) => { if (job && !job.aborted) { item._source = template; job.items.push(item); } };
   const aborted = () => job && job.aborted;
+  const getBrowser = () => browser || null;
 
   switch (template) {
-    case 'leads': return scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted);
-    default: return scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted);
+    case 'leads': return scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted, getBrowser);
+    default: return scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted, getBrowser);
   }
 }
 
-async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted) {
-  const b = await launch();
-  const p = await b.newPage({ locale: 'en-US' });
+async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted, getBrowser) {
+  let b, ownBrowser = false;
+  b = getBrowser();
+  if (!b) { b = await launch(); ownBrowser = true; }
+  const p = await b.newPage();
   try {
     const query = locationQuery ? `${searchString} near ${locationQuery}` : searchString;
     const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}/`;
@@ -49,11 +52,13 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
         add({ title: place.name || '', stars: place.stars, address, phone, website, url: place.href ? (place.href.startsWith('http') ? place.href : `https://www.google.com${place.href}`) : '' });
       } catch (_) {}
     }
-  } finally { await b.close(); }
+  } finally { if (ownBrowser) await b.close(); }
 }
 
-async function scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted) {
-  const b = await launch();
+async function scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted, getBrowser) {
+  let b, ownBrowser = false;
+  b = getBrowser();
+  if (!b) { b = await launch(); ownBrowser = true; }
   const p = await b.newPage();
   const businessResults = [];
   try {
@@ -74,7 +79,7 @@ async function scrapeLeads({ searchString, locationQuery, maxResults }, add, abo
     }
   } catch (_) {}
 
-  if (!businessResults.length || aborted()) { await b.close(); return; }
+  if (!businessResults.length || aborted()) { if (ownBrowser) await b.close(); return; }
 
   const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const phoneRe = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
@@ -124,9 +129,8 @@ async function scrapeLeads({ searchString, locationQuery, maxResults }, add, abo
       } catch (_) {}
       add(lead);
     }
-  } finally { await b.close(); }
+  } finally { if (ownBrowser) await b.close(); }
 }
-
 
 async function launch() {
   return await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });

@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
+const { chromium } = require('playwright');
 const { scrape } = require('./scraper');
 
 const app = express();
@@ -32,13 +33,19 @@ app.post('/api/scrape', async (req, res) => {
   // Return job ID immediately — browser launches in background
   res.json({ jobId });
 
-  // Run all scrapers in parallel — each manages its own browser
-  Promise.all(templates.map(t =>
-    scrape({ template: t, searchString, locationQuery, maxResults: max, job })
-      .catch(err => { console.error(`Scraper ${t} failed:`, err?.message); })
-  )).then(() => {
-    if (!job.aborted) job.status = 'done';
-  });
+  // Launch ONE shared browser for all scrapers
+  chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] })
+    .then(browser => {
+      if (job.aborted) { browser.close().catch(() => {}); return; }
+      return Promise.all(templates.map(t =>
+        scrape({ template: t, searchString, locationQuery, maxResults: max, job, browser })
+          .catch(err => { console.error(`Scraper ${t} failed:`, err?.message); })
+      )).finally(() => {
+        browser.close().catch(() => {});
+        if (!job.aborted) job.status = 'done';
+      });
+    })
+    .catch(err => { job.status = 'error'; job.error = err.message; console.error('Browser launch error:', err); });
 });
 
 app.get('/api/scrape/:jobId', (req, res) => {
