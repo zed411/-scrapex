@@ -55,7 +55,7 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
           const li = body.match(/linkedin\.com\/(?:company|in)\/[a-zA-Z0-9_-]+/i);
           const linkedin = li ? `https://${li[0].toLowerCase()}` : '';
           if (email || linkedin) {
-            add({ _source: 'leads', name: place.name || '', website: place.website, phone: place.phone || '', address: place.address || '', email, linkedin });
+            add({ _source: 'leads', title: place.name || '', name: place.name || '', website: place.website, phone: place.phone || '', address: place.address || '', email, linkedin });
           }
         }
       } catch (_) {}
