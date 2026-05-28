@@ -5,6 +5,7 @@ async function scrape({ template, searchString, locationQuery, maxResults = 10 }
     case 'youtube': return scrapeYouTube({ searchString, maxResults });
     case 'hackernews': return scrapeHN({ searchString, maxResults });
     case 'wikipedia': return scrapeWikipedia({ searchString, maxResults });
+    case 'tiktok': return scrapeTikTok({ searchString, maxResults });
     default: return scrapeGoogleMaps({ searchString, locationQuery, maxResults });
   }
 }
@@ -196,6 +197,93 @@ async function scrapeWikipedia({ searchString, maxResults }) {
 // Helpers
 async function launch() {
   return await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+}
+
+async function scrapeTikTok({ searchString, maxResults }) {
+  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-blink-features=AutomationControlled'] });
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36',
+    viewport: { width: 390, height: 844 },
+  });
+  const page = await context.newPage();
+  await page.addInitScript(() => { Object.defineProperty(navigator, 'webdriver', { get: () => undefined }); });
+  const results = [];
+
+  try {
+    const url = `https://www.tiktok.com/search/video?q=${encodeURIComponent(searchString)}`;
+    await page.goto(url, { timeout: 30000, waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(8000);
+
+    // Scroll to trigger more loading
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => window.scrollBy(0, 400));
+      await page.waitForTimeout(1000);
+    }
+
+    // Extract video data from the page text
+    const text = await page.locator('body').innerText().catch(() => '');
+    const lines = text.split('\n').filter(l => l.trim());
+
+    // Find video blocks - they follow a pattern: likes, comments, "Share", author, description, sound
+    let i = 0;
+    while (i < lines.length && results.length < maxResults) {
+      const line = lines[i].trim();
+
+      // Check if this line looks like a view/like count (e.g. "5.6M", "14.1M", "1.2K")
+      if (/^[\d.]+[MK]?$/.test(line) && i + 2 < lines.length && lines[i + 2] === 'Share') {
+        const likes = line;
+        const comments = lines[i + 1];
+        let author = i + 3 < lines.length ? lines[i + 3] : '';
+        let description = '';
+        let sound = '';
+
+        // After "Share" at i+2, find author, then description, then sound
+        let ptr = i + 3;
+        if (ptr < lines.length) author = lines[ptr++];
+        // Skip any "more" or empty lines for description
+        while (ptr < lines.length && (!lines[ptr].trim() || lines[ptr] === 'more' || lines[ptr] === 'Share')) ptr++;
+        if (ptr < lines.length) description = lines[ptr++];
+        // Skip empty lines before sound
+        while (ptr < lines.length && !lines[ptr].trim()) ptr++;
+        if (ptr < lines.length) sound = lines[ptr];
+
+        results.push({
+          author: author,
+          description: description,
+          likes: likes,
+          comments: comments,
+          sound: sound,
+        });
+        i = ptr + 1;
+    }
+
+    // If no results from the pattern, try profile search instead
+    if (results.length === 0) {
+      const profileUrl = `https://www.tiktok.com/@${encodeURIComponent(searchString.replace(/[^a-zA-Z0-9_]/g, ''))}`;
+      if (profileUrl !== `https://www.tiktok.com/@`) {
+        await page.goto(profileUrl, { timeout: 15000, waitUntil: 'domcontentloaded' });
+        await page.waitForTimeout(4000);
+
+        const jsonlds = await page.locator('script[type="application/ld+json"]').all();
+        for (const el of jsonlds) {
+          try {
+            const data = JSON.parse(await el.textContent() || '{}');
+            if (data.mainEntity) {
+              results.push({
+                author: data.mainEntity.alternateName || '',
+                description: data.mainEntity.description || '',
+                name: data.mainEntity.name || '',
+                url: data.mainEntity.url || '',
+              });
+            }
+          } catch (_) {}
+        }
+      }
+    }
+  } finally {
+    await browser.close();
+  }
+  return results;
 }
 
 async function dismissCookie(page) {

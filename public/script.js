@@ -7,6 +7,7 @@ const TEMPLATES = [
   { id: 'youtube', name: 'YouTube', icon: '▶️', desc: 'Videos & channels', search: 'e.g. "tech reviews"', loc: false },
   { id: 'hackernews', name: 'Hacker News', icon: '📊', desc: 'Posts & scores', search: 'e.g. "AI"', loc: false },
   { id: 'wikipedia', name: 'Wikipedia', icon: '📚', desc: 'Articles & summaries', search: 'e.g. "Python"', loc: false },
+  { id: 'tiktok', name: 'TikTok', icon: '🎵', desc: 'Videos & creators', search: 'e.g. "music"', loc: false },
 ];
 
 let activeTemplate = 'google-maps';
