@@ -6,7 +6,6 @@ async function scrape({ template, searchString, locationQuery, maxResults = 10, 
 
   switch (template) {
     case 'leads': return scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted);
-    case 'ecommerce': return scrapeEcommerce({ searchString, maxResults }, add, aborted);
     default: return scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted);
   }
 }
@@ -128,42 +127,6 @@ async function scrapeLeads({ searchString, locationQuery, maxResults }, add, abo
   } finally { await b.close(); }
 }
 
-async function scrapeEcommerce({ searchString, maxResults }, add, aborted) {
-  const b = await launch();
-  const p = await b.newPage();
-  try {
-    await p.goto(`https://www.wish.com/search/${encodeURIComponent(searchString)}`, { timeout: 15000, waitUntil: 'domcontentloaded' });
-    await p.waitForTimeout(3000);
-
-    const products = await p.locator('[class*="ProductCard"], [class*="product"], [class*="item-card"]').all();
-    for (let i = 0; i < Math.min(products.length, maxResults); i++) {
-      if (aborted()) break;
-      try {
-        const el = products[i];
-        const title = await el.locator('[class*="name"], [class*="title"], h2, h3').first().textContent().catch(() => '');
-        const price = await el.locator('[class*="price"], [class*="cost"]').first().textContent().catch(() => '');
-        const link = await el.locator('a').first().getAttribute('href').catch(() => '');
-        add({ title: title?.trim() || '', price: price?.trim() || '', url: link || '', source: 'wish' });
-      } catch (_) {}
-    }
-
-    if (!aborted()) {
-      await p.goto(`https://www.zalando.com/catalog/?q=${encodeURIComponent(searchString)}`, { timeout: 10000 }).catch(() => {});
-      await p.waitForTimeout(2500);
-      const zalando = await p.locator('[class*="product"], [class*="article"], [class*="item"]').all();
-      for (let i = 0; i < Math.min(zalando.length, maxResults); i++) {
-        if (aborted()) break;
-        try {
-          const el = zalando[i];
-          const title = await el.locator('[class*="name"], h3').first().textContent().catch(() => '');
-          const price = await el.locator('[class*="price"]').first().textContent().catch(() => '');
-          const link = await el.locator('a').first().getAttribute('href').catch(() => '');
-          add({ title: title?.trim() || '', price: price?.trim() || '', url: link || '', source: 'zalando' });
-        } catch (_) {}
-      }
-    }
-  } finally { await b.close(); }
-}
 
 async function launch() {
   return await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
