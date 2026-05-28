@@ -11,6 +11,7 @@ let currentItems = [];
 let allItems = []; // unfiltered
 let isCardView = true;
 let sortKey = '';
+let sortAsc = true;
 let pollTimer = null;
 let currentJobId = null;
 let activeFilters = {};
