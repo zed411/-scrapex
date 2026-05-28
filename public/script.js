@@ -12,23 +12,40 @@ const TEMPLATES = [
   { id: 'youtube', name: 'YouTube', icon: YT_ICON, desc: 'Videos & channels', search: 'e.g. "tech reviews"', loc: false },
 ];
 
+const STORE_KEY = 'scrapex_results';
 let activeTemplate = 'google-maps';
+let currentItems = [];
+let isCardView = false;
+let sortKey = '';
+let sortAsc = true;
 
-const templateList = document.getElementById('templateList');
-const searchForm = document.getElementById('searchForm');
-const searchInput = document.getElementById('searchInput');
-const locationInput = document.getElementById('locationInput');
-const maxResults = document.getElementById('maxResults');
-const searchBtn = document.getElementById('searchBtn');
-const statusEl = document.getElementById('status');
-const resultsEl = document.getElementById('results');
-const tableHead = document.getElementById('tableHead');
-const tableBody = document.getElementById('tableBody');
-const resultCount = document.getElementById('resultCount');
-const exportCsvBtn = document.getElementById('exportCsvBtn');
+const els = {
+  templateList: document.getElementById('templateList'),
+  searchForm: document.getElementById('searchForm'),
+  searchInput: document.getElementById('searchInput'),
+  locationInput: document.getElementById('locationInput'),
+  maxResults: document.getElementById('maxResults'),
+  searchBtn: document.getElementById('searchBtn'),
+  toast: document.getElementById('toast'),
+  statsBar: document.getElementById('statsBar'),
+  skeleton: document.getElementById('skeleton'),
+  results: document.getElementById('results'),
+  tableHead: document.getElementById('tableHead'),
+  tableBody: document.getElementById('tableBody'),
+  tableView: document.getElementById('tableView'),
+  cardsView: document.getElementById('cardsView'),
+  viewToggle: document.getElementById('viewToggle'),
+  resultCount: document.getElementById('resultCount'),
+  exportCsvBtn: document.getElementById('exportCsvBtn'),
+  modal: document.getElementById('modal'),
+  modalBody: document.getElementById('modalBody'),
+  modalClose: document.getElementById('modalClose'),
+  modalCloseX: document.getElementById('modalCloseX'),
+};
 
+// Templates
 function renderTemplates() {
-  templateList.innerHTML = TEMPLATES.map(t => `
+  els.templateList.innerHTML = TEMPLATES.map(t => `
     <div class="template-card ${t.id === activeTemplate ? 'active' : ''}" data-template="${t.id}">
       <span class="template-icon">${t.icon}</span>
       <div class="template-info">
@@ -37,7 +54,6 @@ function renderTemplates() {
       </div>
     </div>
   `).join('');
-
   document.querySelectorAll('.template-card').forEach(card => {
     card.addEventListener('click', () => {
       const id = card.dataset.template;
@@ -50,45 +66,68 @@ function renderTemplates() {
 function setActiveTemplate(id) {
   activeTemplate = id;
   document.querySelectorAll('.template-card').forEach(c => c.classList.toggle('active', c.dataset.template === id));
-
   const t = TEMPLATES.find(x => x.id === id);
-  searchInput.placeholder = t.search;
-  locationInput.style.display = t.loc ? '' : 'none';
-  resultsEl.classList.add('hidden');
-  hideStatus();
+  els.searchInput.placeholder = t.search;
+  els.locationInput.style.display = t.loc ? '' : 'none';
+  hideResults();
+  hideToast();
 }
 
-function showStatus(msg, type) {
-  statusEl.className = 'status ' + type;
+// Toast
+function showToast(msg, type) {
+  els.toast.className = 'toast ' + type;
   if (type === 'loading') {
-    statusEl.innerHTML = '<span class="spinner"></span> ' + msg;
+    els.toast.innerHTML = '<span class="spinner"></span> ' + msg;
   } else {
-    statusEl.textContent = msg;
+    els.toast.textContent = msg;
   }
 }
+function hideToast() { els.toast.className = 'toast hidden'; }
 
-function hideStatus() {
-  statusEl.className = 'status hidden';
+// Skeleton
+function showSkeleton() { els.skeleton.classList.remove('hidden'); }
+function hideSkeleton() { els.skeleton.classList.add('hidden'); }
+
+// Stats
+function showStats(items) {
+  const total = items.length;
+  const withEmail = items.filter(i => i.email).length;
+  const withPhone = items.filter(i => i.phone).length;
+  const avgStars = items.filter(i => i.stars).length
+    ? (items.reduce((a, i) => a + (i.stars || 0), 0) / items.filter(i => i.stars).length).toFixed(1)
+    : '—';
+  els.statsBar.innerHTML = `
+    <div class="stat"><span class="stat-value">${total}</span><span class="stat-label">Results</span></div>
+    <div class="stat"><span class="stat-value">${withEmail}</span><span class="stat-label">Emails</span></div>
+    <div class="stat"><span class="stat-value">${withPhone}</span><span class="stat-label">Phones</span></div>
+    <div class="stat"><span class="stat-value">${avgStars}</span><span class="stat-label">Avg Rating</span></div>
+  `;
+  els.statsBar.classList.remove('hidden');
+}
+function hideStats() { els.statsBar.classList.add('hidden'); }
+
+function hideResults() {
+  els.results.classList.add('hidden');
+  hideStats();
 }
 
-searchForm.addEventListener('submit', async (e) => {
+// Search
+els.searchForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const query = searchInput.value.trim();
-  const location = locationInput.value.trim();
-  const max = maxResults.value || 10;
+  const query = els.searchInput.value.trim();
+  const location = els.locationInput.value.trim();
+  const max = els.maxResults.value || 10;
   if (!query) return;
 
-  searchBtn.disabled = true;
-  searchBtn.textContent = 'Scraping...';
-  resultsEl.classList.add('hidden');
-  showStatus('Scraping...', 'loading');
+  els.searchBtn.disabled = true;
+  els.searchBtn.textContent = 'Scraping...';
+  hideResults();
+  hideToast();
+  showSkeleton();
+  showToast('Scraping...', 'loading');
 
   try {
-    const body = {
-      template: activeTemplate,
-      searchString: query,
-      maxCrawledPlaces: parseInt(max),
-    };
+    const body = { template: activeTemplate, searchString: query, maxCrawledPlaces: parseInt(max) };
     if (location) body.locationQuery = location;
 
     const res = await fetch(API_URL, {
@@ -98,73 +137,184 @@ searchForm.addEventListener('submit', async (e) => {
     });
 
     const data = await res.json();
+    hideSkeleton();
 
-    if (!res.ok) {
-      showStatus(data.error || 'Scrape failed', 'error');
-      return;
-    }
+    if (!res.ok) { showToast(data.error || 'Scrape failed', 'error'); return; }
+    if (!data.items || data.items.length === 0) { showToast('No results found', 'error'); return; }
 
-    if (!data.items || data.items.length === 0) {
-      showStatus('No results found', 'error');
-      return;
-    }
-
-    renderResults(data.items);
-    showStatus(`Found ${data.items.length} results`, 'success');
-    resultsEl.classList.remove('hidden');
+    currentItems = data.items;
+    renderResults(currentItems);
+    showToast(`Found ${data.items.length} results`, 'success');
+    els.results.classList.remove('hidden');
+    showStats(data.items);
+    localStorage.setItem(STORE_KEY, JSON.stringify({ items: data.items, template: activeTemplate, query }));
   } catch (err) {
-    showStatus('Error: ' + err.message, 'error');
+    hideSkeleton();
+    showToast('Error: ' + err.message, 'error');
   } finally {
-    searchBtn.disabled = false;
-    searchBtn.textContent = 'Scrape';
+    els.searchBtn.disabled = false;
+    els.searchBtn.textContent = 'Scrape';
   }
 });
 
+// Render results (table + cards)
 function renderResults(items) {
   const keys = new Set();
   items.forEach(item => Object.keys(item).forEach(k => keys.add(k)));
   const columns = Array.from(keys);
 
-  tableHead.innerHTML = '<tr>' + columns.map(c =>
-    '<th>' + camelToTitle(c) + '</th>'
+  // Table header (sortable)
+  els.tableHead.innerHTML = '<tr>' + columns.map(c =>
+    '<th data-key="' + c + '" class="' + (sortKey === c ? 'sorted' : '') + '">' + camelToTitle(c) + (sortKey === c ? (sortAsc ? ' ▲' : ' ▼') : '') + '</th>'
   ).join('') + '</tr>';
 
-  tableBody.innerHTML = items.map(item =>
-    '<tr>' + columns.map(c => {
+  els.tableHead.querySelectorAll('th').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.key;
+      if (sortKey === key) sortAsc = !sortAsc;
+      else { sortKey = key; sortAsc = true; }
+      renderResults(sortItems([...currentItems], key, sortAsc));
+    });
+  });
+
+  // Table body
+  els.tableBody.innerHTML = sortItems(items, sortKey, sortAsc).map(item =>
+    '<tr class="clickable" data-idx="' + items.indexOf(item) + '">' + columns.map(c => {
       const val = item[c];
       if (val === null || val === undefined) return '<td></td>';
       if (typeof val === 'object') return '<td>' + JSON.stringify(val).slice(0, 200) + '</td>';
       const str = String(val);
-      const isUrl = str.startsWith('http://') || str.startsWith('https://');
-      if (isUrl) return '<td><a href="' + str + '" target="_blank" rel="noopener">' + str + '</a></td>';
+      if (str.match(/^https?:\/\//)) return '<td><a href="' + str + '" target="_blank" rel="noopener">' + str + '</a></td>';
       return '<td>' + str + '</td>';
     }).join('') + '</tr>'
   ).join('');
 
-  resultCount.textContent = '(' + items.length + ')';
-
-  exportCsvBtn.onclick = () => {
-    const csvRows = [columns.join(',')];
-    items.forEach(item => {
-      csvRows.push(columns.map(c => {
-        const val = item[c];
-        if (val === null || val === undefined) return '';
-        return '"' + String(val).replace(/"/g, '""') + '"';
-      }).join(','));
+  // Click row to open modal
+  els.tableBody.querySelectorAll('tr.clickable').forEach(row => {
+    row.addEventListener('click', () => {
+      const idx = parseInt(row.dataset.idx);
+      const item = items[idx];
+      if (item) openModal(item, columns);
     });
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'scrapex_results.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  });
+
+  // Cards view
+  els.cardsView.innerHTML = sortItems(items, sortKey, sortAsc).map((item, i) => {
+    const title = item.title || item.name || item.author || '';
+    const stars = item.stars ? '★'.repeat(Math.round(item.stars)) + '☆'.repeat(5 - Math.round(item.stars)) : '';
+    const email = item.email ? '<span class="card-email">✉ ' + item.email + '</span>' : '';
+    const phone = item.phone ? '<span class="card-phone">📞 ' + item.phone + '</span>' : '';
+    const website = item.website || item.url || '';
+    return '<div class="card" data-idx="' + items.indexOf(item) + '">' +
+      '<div class="card-title">' + title + '</div>' +
+      (stars ? '<div class="card-stars">' + stars + '</div>' : '') +
+      '<div class="card-meta">' +
+      (item.category ? '<span>🏷 ' + item.category + '</span>' : '') +
+      (item.address ? '<span>📍 ' + item.address + '</span>' : '') +
+      (item.channel ? '<span>📺 ' + item.channel + '</span>' : '') +
+      (item.views ? '<span>👁 ' + item.views + '</span>' : '') +
+      email +
+      phone +
+      '</div>' +
+      (website ? '<a href="' + website + '" target="_blank" rel="noopener" class="card-link" onclick="event.stopPropagation()">🔗 Open</a>' : '') +
+      '</div>';
+  }).join('');
+
+  els.cardsView.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => {
+      const idx = parseInt(card.dataset.idx);
+      const item = items[idx];
+      if (item) openModal(item, columns);
+    });
+  });
+
+  els.resultCount.textContent = '(' + items.length + ')';
+  updateViewToggle();
 }
+
+function sortItems(items, key, asc) {
+  if (!key) return items;
+  return [...items].sort((a, b) => {
+    const va = (a[key] ?? '').toString().toLowerCase();
+    const vb = (b[key] ?? '').toString().toLowerCase();
+    const na = parseFloat(va), nb = parseFloat(vb);
+    if (!isNaN(na) && !isNaN(nb)) return asc ? na - nb : nb - na;
+    return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+}
+
+// View toggle
+els.viewToggle.addEventListener('click', () => {
+  isCardView = !isCardView;
+  updateViewToggle();
+});
+
+function updateViewToggle() {
+  els.tableView.classList.toggle('hidden', isCardView);
+  els.cardsView.classList.toggle('hidden', !isCardView);
+  els.viewToggle.textContent = isCardView ? '⊞' : '▦';
+  els.viewToggle.title = isCardView ? 'Table view' : 'Card view';
+}
+
+// Modal
+function openModal(item, columns) {
+  els.modalBody.innerHTML = '<h3>' + (item.title || item.name || 'Details') + '</h3>' +
+    columns.filter(c => c !== 'searchString').map(c => {
+      const val = item[c];
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      const isUrl = str.match(/^https?:\/\//);
+      return '<div class="m-field"><div class="m-label">' + camelToTitle(c) + '</div><div class="m-value">' +
+        (isUrl ? '<a href="' + str + '" target="_blank" rel="noopener">' + str + '</a>' : str) +
+        '</div></div>';
+    }).join('');
+  els.modal.classList.remove('hidden');
+}
+
+function closeModal() { els.modal.classList.add('hidden'); }
+els.modalClose.addEventListener('click', closeModal);
+els.modalCloseX.addEventListener('click', closeModal);
+els.modal.addEventListener('click', (e) => { if (e.target === els.modal) closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+// Export CSV
+els.exportCsvBtn.onclick = () => {
+  if (!currentItems.length) return;
+  const columns = Object.keys(currentItems[0]);
+  const csvRows = [columns.join(',')];
+  currentItems.forEach(item => {
+    csvRows.push(columns.map(c => {
+      const val = item[c];
+      if (val === null || val === undefined) return '';
+      return '"' + String(val).replace(/"/g, '""') + '"';
+    }).join(','));
+  });
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'scrapex_results.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 function camelToTitle(str) {
   return str.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).replace(/_/g, ' ').trim();
 }
 
+// Restore saved results
+function restoreSaved() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (saved && saved.items && saved.items.length) {
+      currentItems = saved.items;
+      renderResults(currentItems);
+      els.results.classList.remove('hidden');
+      showStats(currentItems);
+    }
+  } catch (_) {}
+}
+
 renderTemplates();
 setActiveTemplate(activeTemplate);
+restoreSaved();
