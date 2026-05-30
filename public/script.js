@@ -195,11 +195,12 @@ function pollResults() {
       }
       const items = data.items || [];
       if (items.length > prevCount) {
+        const newItems = items.slice(prevCount);
         allItems = items;
         hideSkeleton();
         els.results.classList.remove('hidden');
         if (prevCount === 0) buildFilters(items);
-        applyFilters();
+        applyFilters(newItems);
         showToast(`Found ${items.length} results${data.status === 'running' ? '…' : ''}`, 'loading');
         prevCount = items.length;
       }
@@ -228,11 +229,17 @@ els.stopBtn.addEventListener('click', stopScrape);
 function buildFilters(_items) {
   // Filter bar removed
 }
-function applyFilters() {
+function applyFilters(newItems) {
   currentItems = allItems;
   if (!currentItems.length) { els.results.classList.add('hidden'); return; }
   els.results.classList.remove('hidden');
-  setupTable(currentItems);
+  if (newItems && prevCount > 0) {
+    // Streaming: only append new items
+    appendCards(newItems);
+  } else {
+    // First batch: render everything
+    setupTable(currentItems);
+  }
   showStats(currentItems);
 }
 
