@@ -9,7 +9,7 @@ if (API_KEY) {
 
 async function fetch(url, opts = {}) {
   if (!client) throw new Error('SCRAPINGBEE_API_KEY not set');
-  const res = await client.get({
+  const res = await client.htmlApi({
     url,
     params: { render_js: true, premium_proxy: true, ...opts },
   });
@@ -108,9 +108,9 @@ async function scrapeGoogleSearch({ searchString, maxResults }, add, aborted) {
 async function scrapeYouTube({ searchString, maxResults }, add, aborted) {
   const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchString)}`;
   try {
-    const res = await client.get({
+    const res = await client.htmlApi({
       url,
-      params: { render_js: true, wait: 3000, scroll: true, custom_google: false },
+      params: { render_js: true, wait: 3000, scroll: true },
     });
     const $ = cheerio.load(res.data);
     let count = 0;
