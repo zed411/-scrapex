@@ -150,7 +150,7 @@ td a:hover { text-decoration: underline; }
 .filter-chip.on[data-source="video"] { background: #ff6b6b; color: #fff; border-color: #ff6b6b; }
 .filter-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 
-.source-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.source-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; justify-content: center; }
 .source-filters.hidden { display: none; }
 
 /* Source badges */
