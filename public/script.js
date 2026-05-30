@@ -2,8 +2,8 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
   ? '/api/scrape'
   : 'https://scrapex-a017.onrender.com/api/scrape';
 
-const SOURCE_COLORS = { 'google-maps': '#4285f4', 'leads': '#34a853', 'ecommerce': '#fbbc04' };
-const SOURCE_NAMES = { 'google-maps': 'Maps', 'leads': 'Leads', 'web': 'Web', 'video': 'Video' };
+const SOURCE_COLORS = { 'leads': '#34a853', 'web': '#fdd663', 'video': '#ff6b6b' };
+const SOURCE_NAMES = { 'leads': 'Leads', 'web': 'Web', 'video': 'Video' };
 const STORE_KEY = 'scrapex_results';
 const HISTORY_KEY = 'scrapex_history';
 
@@ -14,7 +14,7 @@ let sortKey = '';
 let sortAsc = true;
 let pollTimer = null;
 let currentJobId = null;
-let activeFilters = { maps: true, web: true, video: true };
+let activeFilters = { leads: true, web: true, video: true };
 
 const els = {
   searchForm: document.getElementById('searchForm'),
@@ -151,7 +151,7 @@ els.searchForm.addEventListener('submit', async (e) => {
   // Read selected sources BEFORE resetting
   const selected = Object.entries(activeFilters).filter(([, v]) => v).map(([k]) => k);
   allItems = []; currentItems = []; prevCount = 0;
-  activeFilters = { maps: true, web: true, video: true };
+  activeFilters = { leads: true, web: true, video: true };
   els.cardsView.innerHTML = '';
   els.searchBtn.disabled = true;
   els.searchBtn.textContent = 'Scraping…';
@@ -227,11 +227,11 @@ function stopDone() {
 els.stopBtn.addEventListener('click', stopScrape);
 
 // Source filters - shown before scraping and after results
-const FILTER_NAMES = { 'maps': 'Maps', 'web': 'Web', 'video': 'Video' };
-const FILTER_COLORS = { 'maps': '#4285f4', 'web': '#fdd663', 'video': '#ff6b6b' };
+const FILTER_NAMES = { 'leads': 'Leads', 'web': 'Web', 'video': 'Video' };
+const FILTER_COLORS = { 'leads': '#34a853', 'web': '#fdd663', 'video': '#ff6b6b' };
 
 function renderSourceFilters() {
-  const sources = ['maps', 'web', 'video'];
+  const sources = ['leads', 'web', 'video'];
   els.presetFilters.innerHTML = sources.map(s =>
     '<div class="filter-chip ' + (activeFilters[s] ? 'on' : '') + '" data-source="' + s + '">' +
     '<span class="filter-dot" style="background:' + (FILTER_COLORS[s] || '#888') + '"></span>' +

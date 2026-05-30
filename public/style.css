@@ -145,7 +145,7 @@ td a:hover { text-decoration: underline; }
 .filter-chip { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: #8b8ba7; cursor: pointer; user-select: none; padding: 5px 14px; border-radius: 8px; border: 1.5px solid #2a2a40; transition: all .2s; background: #0f0f1d; }
 .filter-chip:hover { border-color: #4285f4; }
 .filter-chip.on { border-color: #4285f4; background: rgba(66,133,244,.08); color: #e1e1f0; }
-.filter-chip.on[data-source="maps"] { background: #4285f4; color: #fff; border-color: #4285f4; }
+.filter-chip.on[data-source="leads"] { background: #34a853; color: #fff; border-color: #34a853; }
 .filter-chip.on[data-source="web"] { background: #fdd663; color: #1a1a2e; border-color: #fdd663; }
 .filter-chip.on[data-source="video"] { background: #ff6b6b; color: #fff; border-color: #ff6b6b; }
 .filter-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
@@ -156,7 +156,6 @@ td a:hover { text-decoration: underline; }
 
 /* Source badges */
 .source-badge { display: inline-block; font-size: .65rem; font-weight: 700; padding: 2px 8px; border-radius: 5px; text-transform: uppercase; letter-spacing: .4px; margin-right: 6px; vertical-align: middle; }
-.source-gmaps { background: rgba(66,133,244,.15); color: #8ab4f8; }
 .source-leads { background: rgba(52,168,83,.15); color: #66bb6a; }
 .source-web { background: rgba(251,188,4,.15); color: #fdd663; }
 .source-video { background: rgba(255,0,0,.15); color: #ff6b6b; }

@@ -16,49 +16,81 @@ async function fetch(url, opts = {}) {
   return res.data;
 }
 
-async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted) {
-  const query = locationQuery ? `${searchString} near ${locationQuery}` : searchString;
-  const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}/`;
+async function scrapeLeads({ searchString, locationQuery, maxResults }, add, aborted) {
+  const query = locationQuery ? `${searchString} ${locationQuery}` : searchString;
+  const url = `https://www.google.com/search?q=${encodeURIComponent(query)}&hl=en`;
 
   try {
-    const html = await fetch(searchUrl, { wait: 3000, custom_google: true });
+    const html = await fetch(url, { wait: 2000, custom_google: true });
     const $ = cheerio.load(html);
+    const leads = [];
 
-    const seen = new Set();
-    let count = 0;
-
-    $(`a[href*="/maps/place/"]`).each((i, el) => {
-      if (count >= maxResults || aborted()) return false;
+    // Extract business names and websites from search results
+    $('div.g, div[data-hveid], a[href^="http"] h3').each((i, el) => {
+      if (leads.length >= maxResults || aborted()) return false;
       const $el = $(el);
-      const name = $el.attr('aria-label');
-      const href = $el.attr('href');
-      if (!name || !href) return;
-      const cleanName = name.split(',')[0].trim();
-      if (!cleanName || seen.has(cleanName)) return;
-      seen.add(cleanName);
+      const title = $el.is('h3') ? $el.text().trim() : $el.find('h3').first().text().trim();
+      let link = $el.is('h3') ? $el.parent().attr('href') || '' : $el.find('a').first().attr('href') || '';
+      const snippet = $el.closest('div').find('.VwiC3b, .lEBKkf, span.aCOpRe').first().text().trim();
 
-      // Extract stars from nearby span
-      let stars = 0;
-      const allStars = $(`[aria-label*="stars"]`);
-      if (allStars.length > count) {
-        const label = $(allStars[count]).attr('aria-label') || '';
-        const match = label.match(/[\d.]+/);
-        if (match) stars = parseFloat(match[0]);
+      // Clean up Google redirect URLs
+      const urlMatch = link.match(/\/url\?q=([^&]+)/);
+      if (urlMatch) link = decodeURIComponent(urlMatch[1]);
+      if (!link.startsWith('http')) return;
+
+      // Skip known non-business sites
+      const skip = ['google.com', 'youtube.com', 'facebook.com', 'twitter.com', 'instagram.com', 'linkedin.com', 'wikipedia.org'];
+      if (skip.some(s => link.includes(s))) return;
+
+      if (title) {
+        // Extract email from snippet if present
+        const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+        const snippetEmail = ([...snippet.matchAll(emailRe)].map(m => m[0]))[0] || '';
+
+        leads.push({ title, url: link, snippet, snippetEmail });
       }
+    });
+
+    // Visit each website to find email, LinkedIn, phone
+    const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    const phoneRe = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+    const badRe = /\.(png|jpg|jpeg|gif|svg|css|js|ico)$|@example\.|@\./i;
+
+    for (const lead of leads) {
+      if (aborted()) break;
+      let email = lead.snippetEmail || '';
+      let phone = '';
+      let linkedin = '';
+
+      try {
+        const siteHtml = await fetch(lead.url, { render_js: false, premium_proxy: false, wait: 500 });
+        if (siteHtml) {
+          if (!email) {
+            const emails = [...siteHtml.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
+            email = emails[0] || '';
+          }
+          if (!phone) {
+            const phones = [...siteHtml.matchAll(phoneRe)].map(m => m[0]);
+            phone = phones[0] || '';
+          }
+          const li = siteHtml.match(/linkedin\.com\/(?:company|in)\/[a-zA-Z0-9_-]+/i);
+          if (li) linkedin = `https://${li[0].toLowerCase()}`;
+        }
+      } catch (_) {}
 
       add({
-        _source: 'maps',
-        title: cleanName,
-        stars,
-        address: '',
-        phone: '',
-        website: '',
-        url: href.startsWith('http') ? href : `https://www.google.com${href}`,
+        _source: 'leads',
+        title: lead.title,
+        name: lead.title,
+        website: lead.url,
+        email,
+        phone,
+        linkedin,
+        snippet: lead.snippet,
       });
-      count++;
-    });
+    }
   } catch (err) {
-    console.error('Maps error:', err.message);
+    console.error('Leads error:', err.message);
   }
 }
 
@@ -131,4 +163,4 @@ async function scrapeYouTube({ searchString, maxResults }, add, aborted) {
   }
 }
 
-module.exports = { scrapeGoogleMaps, scrapeGoogleSearch, scrapeYouTube };
+module.exports = { scrapeLeads, scrapeGoogleSearch, scrapeYouTube };

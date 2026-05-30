@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
-const { scrapeGoogleMaps, scrapeGoogleSearch, scrapeYouTube } = require('./scraper');
+const { scrapeLeads, scrapeGoogleSearch, scrapeYouTube } = require('./scraper');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,8 +36,8 @@ app.post('/api/scrape', async (req, res) => {
     try {
       const add = (item) => { if (!job.aborted) job.items.push(item); };
       const aborted = () => job.aborted;
-      if (!templates || templates.includes('maps'))
-        await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted);
+      if (!templates || templates.includes('leads'))
+        await scrapeLeads({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted);
       if (!templates || templates.includes('web'))
         await scrapeGoogleSearch({ searchString, maxResults: Number(maxCrawledPlaces) }, add, aborted);
       if (!templates || templates.includes('video'))
