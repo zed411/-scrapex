@@ -1,6 +1,7 @@
 {
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "NIXPACKS",
+    "watchPatterns": ["src/**"]
   },
   "deploy": {
     "startCommand": "node server.js",
