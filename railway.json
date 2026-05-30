@@ -1,0 +1,10 @@
+{
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "deploy": {
+    "startCommand": "node server.js",
+    "healthcheckPath": "/api/health",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
