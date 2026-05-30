@@ -68,7 +68,7 @@ function hideResults() { els.results.classList.add('hidden'); hideStats(); }
 function parseQuery(input) {
   let text = input.trim();
   if (!text || text.length < 5) return { searchTerm: text, location: '', keywords: '' };
-  const locRegex = /\b(?:in|near|around|at)\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*)/;
+  const locRegex = /\b(?:in|near|around|at)\s+([A-Za-z][a-zA-Z]*(?:\s+[A-Za-z][a-zA-Z]*)*)/;
   const locMatch = text.match(locRegex);
   let location = '';
   if (locMatch) { location = locMatch[1].trim(); text = text.replace(locMatch[0], '').trim(); }
