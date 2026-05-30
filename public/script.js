@@ -231,12 +231,11 @@ const FILTER_NAMES = { 'maps': 'Maps', 'web': 'Web', 'video': 'Video', 'leads': 
 const FILTER_COLORS = { 'maps': '#4285f4', 'web': '#fdd663', 'video': '#ff6b6b', 'leads': '#34a853' };
 
 function buildFilters(items) {
-  const sources = [...new Set(items.map(i => i._source).filter(Boolean))];
-  sources.forEach(s => { if (activeFilters[s] === undefined) activeFilters[s] = true; });
+  // Always show all 3 source buttons regardless of results
+  const allSources = ['maps', 'web', 'video'];
+  allSources.forEach(s => { if (activeFilters[s] === undefined) activeFilters[s] = true; });
   
-  if (!sources.length) { els.sourceFilters.classList.add('hidden'); return; }
-  
-  els.sourceFilters.innerHTML = sources.map(s =>
+  els.sourceFilters.innerHTML = allSources.map(s =>
     '<div class="filter-chip ' + (activeFilters[s] ? 'on' : '') + '" data-source="' + s + '">' +
     '<span class="filter-dot" style="background:' + (FILTER_COLORS[s] || '#888') + '"></span>' +
     (FILTER_NAMES[s] || s) + '</div>'
