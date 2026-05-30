@@ -63,7 +63,8 @@ async function scrapeLeads({ searchString, locationQuery, maxResults }, add, abo
       let linkedin = '';
 
       try {
-        const siteHtml = await fetch(lead.url, { render_js: false, premium_proxy: false, wait: 500 });
+        const raw = await fetch(lead.url, { render_js: false, premium_proxy: false, wait: 500 });
+        const siteHtml = Buffer.isBuffer(raw) ? raw.toString() : (raw || '');
         if (siteHtml) {
           if (!email) {
             const emails = [...siteHtml.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
