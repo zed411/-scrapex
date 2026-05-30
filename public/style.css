@@ -147,7 +147,12 @@ td a:hover { text-decoration: underline; }
 .filter-chip.on { border-color: #4285f4; background: rgba(66,133,244,.08); color: #e1e1f0; }
 .filter-chip.on[data-source="google-maps"] { background: #4285f4; color: #fff; border-color: #4285f4; }
 .filter-chip.on[data-source="leads"] { background: #34a853; color: #fff; border-color: #34a853; }
+.filter-chip.on[data-source="web"] { background: #fdd663; color: #1a1a2e; border-color: #fdd663; }
+.filter-chip.on[data-source="video"] { background: #ff6b6b; color: #fff; border-color: #ff6b6b; }
 .filter-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+.source-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.source-filters.hidden { display: none; }
 
 /* Source badges */
 .source-badge { display: inline-block; font-size: .65rem; font-weight: 700; padding: 2px 8px; border-radius: 5px; text-transform: uppercase; letter-spacing: .4px; margin-right: 6px; vertical-align: middle; }

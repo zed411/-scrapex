@@ -37,6 +37,7 @@ const els = {
   modalCloseX: document.getElementById('modalCloseX'),
   aiBadge: document.getElementById('aiBadge'),
   historyDropdown: document.getElementById('historyDropdown'),
+  sourceFilters: document.getElementById('sourceFilters'),
 };
 
 function showToast(msg, type) {
@@ -226,21 +227,56 @@ function stopDone() {
 els.stopBtn.addEventListener('click', stopScrape);
 
 // Filters
-function buildFilters(_items) {
-  // Filter bar removed
+const FILTER_NAMES = { 'maps': 'Maps', 'web': 'Web', 'video': 'Video', 'leads': 'Leads' };
+const FILTER_COLORS = { 'maps': '#4285f4', 'web': '#fdd663', 'video': '#ff6b6b', 'leads': '#34a853' };
+
+function buildFilters(items) {
+  const sources = [...new Set(items.map(i => i._source).filter(Boolean))];
+  sources.forEach(s => { if (activeFilters[s] === undefined) activeFilters[s] = true; });
+  
+  if (!sources.length) { els.sourceFilters.classList.add('hidden'); return; }
+  
+  els.sourceFilters.innerHTML = sources.map(s =>
+    '<div class="filter-chip ' + (activeFilters[s] ? 'on' : '') + '" data-source="' + s + '">' +
+    '<span class="filter-dot" style="background:' + (FILTER_COLORS[s] || '#888') + '"></span>' +
+    (FILTER_NAMES[s] || s) + '</div>'
+  ).join('');
+  els.sourceFilters.classList.remove('hidden');
+
+  els.sourceFilters.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const s = chip.dataset.source;
+      activeFilters[s] = !activeFilters[s];
+      chip.classList.toggle('on', activeFilters[s]);
+      renderFiltered();
+    });
+  });
 }
+
+function renderFiltered() {
+  const active = Object.entries(activeFilters).filter(([, v]) => v).map(([k]) => k);
+  const filtered = active.length ? allItems.filter(i => active.includes(i._source)) : allItems;
+  currentItems = filtered;
+  els.cardsView.innerHTML = '';
+  appendCards(filtered);
+  els.resultCount.textContent = '(' + filtered.length + ')';
+  showStats(filtered);
+}
+
 function applyFilters(newItems) {
-  currentItems = allItems;
-  if (!currentItems.length) { els.results.classList.add('hidden'); return; }
+  if (!allItems.length) { els.results.classList.add('hidden'); return; }
   els.results.classList.remove('hidden');
   if (newItems && prevCount > 0) {
-    // Streaming: only append new items
-    appendCards(newItems);
+    // Streaming: only append new items to ALL items, then re-filter
+    appendCards(newItems.filter(i => {
+      const active = Object.entries(activeFilters).filter(([, v]) => v).map(([k]) => k);
+      return active.includes(i._source);
+    }));
   } else {
-    // First batch: render everything
-    setupTable(currentItems);
+    // First batch: build filters and render
+    buildFilters(allItems);
+    renderFiltered();
   }
-  showStats(currentItems);
 }
 
 // Setup table
