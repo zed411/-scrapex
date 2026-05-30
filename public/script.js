@@ -245,8 +245,14 @@ function buildFilters(items) {
   els.sourceFilters.querySelectorAll('.filter-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const s = chip.dataset.source;
-      activeFilters[s] = !activeFilters[s];
-      chip.classList.toggle('on', activeFilters[s]);
+      // If already active, turn it off (show all)
+      if (activeFilters[s]) {
+        Object.keys(activeFilters).forEach(k => activeFilters[k] = true);
+      } else {
+        // Show only this source
+        Object.keys(activeFilters).forEach(k => activeFilters[k] = k === s);
+      }
+      els.sourceFilters.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('on', activeFilters[c.dataset.source]));
       renderFiltered();
     });
   });
