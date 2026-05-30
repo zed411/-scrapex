@@ -404,4 +404,5 @@ function restoreSaved() {
   } catch (_) {}
 }
 restoreSaved();
+renderSourceFilters();
 
