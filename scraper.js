@@ -1,79 +1,101 @@
-const { chromium } = require('playwright');
+const ScrapingBee = require('scrapingbee');
+const cheerio = require('cheerio');
+const API_KEY = process.env.SCRAPINGBEE_API_KEY || '';
 
-async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted, browser) {
-  const p = await browser.newPage();
+let client;
+if (API_KEY) {
+  client = new ScrapingBee(API_KEY);
+}
+
+async function fetch(url, opts = {}) {
+  if (!client) throw new Error('SCRAPINGBEE_API_KEY not set');
+  const params = { render_js: true, premium_proxy: true, ...opts };
+  const res = await client.get({ url, params });
+  return res.data;
+}
+
+async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add, aborted) {
+  const query = locationQuery ? `${searchString} near ${locationQuery}` : searchString;
+  const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}/`;
+
   try {
-    const query = locationQuery ? `${searchString} near ${locationQuery}` : searchString;
-    await p.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}/`, { timeout: 15000, waitUntil: 'domcontentloaded' });
-    await p.waitForTimeout(3000);
+    const html = await fetch(searchUrl, { wait: 3000, scroll: true });
+    const $ = cheerio.load(html);
 
-    const feed = p.locator('[role="feed"]');
-    for (let i = 0; i < 10; i++) {
-      try { await feed.evaluate(el => el.scrollBy(0, el.scrollHeight)); await p.waitForTimeout(300); } catch (_) {}
-    }
-
-    // First pass: get business names, stars, phone, website, address
-    const children = await feed.locator('> div').all();
+    // Find all place links
     const places = [];
-    for (const child of children) {
-      if (places.length >= maxResults) break;
-      const link = child.locator('a[href*="/maps/place/"]');
-      if (!(await link.count())) continue;
+    $(`a[href*="/maps/place/"]`).each((i, el) => {
+      if (places.length >= maxResults) return false;
+      const $el = $(el);
+      const name = $el.attr('aria-label');
+      const href = $el.attr('href');
+      if (name && href && !places.some(p => p.name === name)) {
+        places.push({
+          name: name.split(',')[0].trim(),
+          url: href.startsWith('http') ? href : `https://www.google.com${href}`,
+          stars: 0,
+        });
+      }
+    });
+
+    // Extract stars near each place link
+    places.forEach((place, idx) => {
+      // Find a nearby span with an aria-label containing "stars"
+      const allEls = $(`[aria-label*="stars"]`);
+      if (allEls.length > idx) {
+        const label = $(allEls[idx]).attr('aria-label') || '';
+        const match = label.match(/[\d.]+/);
+        if (match) place.stars = parseFloat(match[0]);
+      }
+    });
+
+    // Process each place - get details from its page
+    for (let i = 0; i < Math.min(places.length, maxResults); i++) {
+      if (aborted()) break;
+      const place = places[i];
+
       try {
-        const href = await link.getAttribute('href');
-        const name = await link.getAttribute('aria-label');
-        let stars = 0;
-        const rt = await child.locator('span[aria-label*="stars"]').first().getAttribute('aria-label').catch(() => '');
-        if (rt) stars = parseFloat(rt.match(/[\d.]+/)?.[0]) || 0;
+        const detailHtml = await fetch(place.url, { wait: 1500 });
+        const $d = cheerio.load(detailHtml);
 
-        await link.click();
-        await p.waitForTimeout(500);
-        const phone = await txt(p, 'button[data-tooltip*="phone"]', 'button[aria-label*="Phone"]');
-        const website = await attr(p, 'a[data-tooltip*="website"]', 'a[data-item-id*="authority"]');
-        const address = await txt(p, 'button[data-tooltip*="address"]', 'button[aria-label*="Address"]');
+        let phone = '', website = '', address = '';
 
-        add({ _source: 'maps', title: name || '', stars, address, phone, website, url: href || '' });
-        places.push({ name, website, phone, address });
-        await p.goBack({ timeout: 8000 }).catch(() => {});
-      } catch (_) {}
-    }
+        $d('[data-tooltip]').each((i, el) => {
+          const tip = $(el).attr('data-tooltip') || '';
+          const text = $(el).text().trim();
+          if (tip.includes('phone') && text) phone = text;
+          if (tip.includes('address') && text) address = text;
+        });
 
-    // Second pass: visit websites to find emails (leads)
-    const visited = new Set();
-    for (const place of places) {
-      if (aborted() || !place.website || visited.has(place.website)) continue;
-      visited.add(place.website);
-      try {
-        await p.goto(place.website, { timeout: 8000, waitUntil: 'domcontentloaded' }).catch(() => {});
-        await p.waitForTimeout(500);
-        const body = await p.locator('body').textContent({ timeout: 1500 }).catch(() => '');
-        if (body) {
-          const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-          const badRe = /\.(png|jpg|jpeg|gif|svg|css|js|ico)$|@example\.|@\./i;
-          const email = ([...body.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e)))[0] || '';
-          const li = body.match(/linkedin\.com\/(?:company|in)\/[a-zA-Z0-9_-]+/i);
-          const linkedin = li ? `https://${li[0].toLowerCase()}` : '';
-          if (email || linkedin) {
-            add({ _source: 'leads', title: place.name || '', name: place.name || '', website: place.website, phone: place.phone || '', address: place.address || '', email, linkedin });
-          }
+        $d('[data-item-id="authority"]').each((i, el) => {
+          const href = $(el).attr('href');
+          if (href) website = href;
+        });
+
+        add({ _source: 'maps', title: place.name, stars: place.stars, address, phone, website, url: place.url });
+
+        // Visit website for email (leads)
+        if (website && !aborted()) {
+          try {
+            const siteHtml = await fetch(website, { render_js: false, premium_proxy: false, wait: 500 });
+            const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+            const badRe = /\.(png|jpg|jpeg|gif|svg|css|js|ico)$|@example\.|@\./i;
+            const emails = [...siteHtml.matchAll(emailRe)].map(m => m[0]).filter(e => !badRe.test(e));
+            const email = emails[0] || '';
+            const li = siteHtml.match(/linkedin\.com\/(?:company|in)\/[a-zA-Z0-9_-]+/i);
+            const linkedin = li ? `https://${li[0].toLowerCase()}` : '';
+            if (email || linkedin) {
+              add({ _source: 'leads', title: place.name, name: place.name, website, phone, address, email, linkedin });
+            }
+          } catch (_) {}
         }
-      } catch (_) {}
+      } catch (_) {
+        add({ _source: 'maps', title: place.name, stars: place.stars, address: '', phone: '', website: '', url: place.url });
+      }
     }
-  } finally { await p.close(); }
-}
-
-async function txt(page, ...sels) {
-  for (const sel of sels) {
-    try { const t = await page.locator(sel).first().textContent({ timeout: 500 }).catch(() => ''); if (t) return t.replace(/[^\x20-\x7E\s]/g, '').trim(); } catch (_) {}
+  } catch (err) {
+    console.error('ScrapingBee error:', err.message);
   }
-  return '';
-}
-
-async function attr(page, ...sels) {
-  for (const sel of sels) {
-    try { const a = await page.locator(sel).first().getAttribute('href', { timeout: 500 }).catch(() => ''); if (a) return a; } catch (_) {}
-  }
-  return '';
 }
 
 module.exports = { scrapeGoogleMaps };

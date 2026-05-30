@@ -1,12 +1,16 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
-const { chromium } = require('playwright');
 const { scrapeGoogleMaps } = require('./scraper');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const jobs = {};
+
+// Check for API key on startup
+if (!process.env.SCRAPINGBEE_API_KEY) {
+  console.log('WARNING: SCRAPINGBEE_API_KEY not set. Set it in Railway environment variables.');
+}
 
 app.use(express.json());
 app.use((req, res, next) => {
@@ -17,7 +21,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.get('/api/health', (req, res) => res.json({ ok: true, apiKeySet: !!process.env.SCRAPINGBEE_API_KEY }));
 
 app.post('/api/scrape', async (req, res) => {
   const { searchString, locationQuery, maxCrawledPlaces = 50 } = req.body;
@@ -28,19 +32,11 @@ app.post('/api/scrape', async (req, res) => {
   jobs[jobId] = job;
   res.json({ jobId });
 
-  // Run scrapers in background — each pushes to job.items
   (async () => {
     try {
-      const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-      const seen = new Set();
-      const add = (item) => { if (!job.aborted) { const key = item.url || item.title || item.name || ''; if (key && seen.has(key)) return; if (key) seen.add(key); job.items.push(item); } };
+      const add = (item) => { if (!job.aborted) job.items.push(item); };
       const aborted = () => job.aborted;
-
-      try {
-        await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted, browser);
-      } finally {
-        await browser.close().catch(() => {});
-      }
+      await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted);
       if (!job.aborted) job.status = 'done';
     } catch (err) {
       console.error('Scrape error:', err);
