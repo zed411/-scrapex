@@ -3,64 +3,181 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ScrapeX</title>
+  <title>ScrapeX — Web Data Extraction</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="logo">
-        <div class="logo-icon">S</div>
-        <h1>ScrapeX</h1>
-      </div>
-      <p class="subtitle">Automate Your Web Data Collection With ScrapeX</p>
-    </header>
 
-    <form id="searchForm" class="search-box">
-      <div class="search-input-wrap">
-        <input type="text" id="searchInput" placeholder='Search (or ask AI what to extract)' required autocomplete="off" />
-        <span id="aiBadge" class="ai-badge hidden">AI</span>
-        <div id="historyDropdown" class="history-dropdown hidden"></div>
+  <header class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-inner">
+      <nav class="nav">
+        <div class="logo">
+          <div class="logo-icon">S</div>
+          <span class="logo-text">ScrapeX</span>
+        </div>
+        <div class="nav-right">
+          <a href="#features" class="nav-link">Features</a>
+          <a href="#pricing" class="nav-link">Pricing</a>
+          <a href="#faq" class="nav-link">FAQ</a>
+          <a href="https://github.com/zed411/-scrapex" target="_blank" class="nav-link github-link">★ GitHub</a>
+        </div>
+      </nav>
+      <div class="hero-content">
+        <h1 class="hero-title">Extract Data <span class="gradient-text">from the Web</span></h1>
+        <p class="hero-sub">Turn any search into structured data — business leads, web results, and videos. No coding required.</p>
+        <form id="searchForm" class="search-box">
+          <div class="search-input-wrap">
+            <input type="text" id="searchInput" placeholder="Search (or ask AI what to extract)" autocomplete="off" />
+            <span id="aiBadge" class="ai-badge hidden">AI</span>
+            <div id="historyDropdown" class="history-dropdown hidden"></div>
+          </div>
+          <input type="text" id="locationInput" placeholder="Location (auto-detected)" class="location-input" />
+          <div id="presetFilters" class="source-filters"></div>
+          <div class="search-actions">
+            <button type="submit" id="searchBtn">Launch</button>
+            <button type="button" id="stopBtn" class="stop-btn hidden">Cancel</button>
+          </div>
+        </form>
+        <p class="hero-footnote">Powered by ScrapingBee &middot; 150k credits/mo</p>
       </div>
-      <input type="text" id="locationInput" placeholder="Location (auto-detected)" class="location-input" />
-      <input type="text" id="keywordsInput" placeholder="Keywords (auto-detected)" class="keywords-input" />
-      <div id="presetFilters" class="source-filters"></div>
-      <button type="submit" id="searchBtn">Scrape</button>
-      <button type="button" id="stopBtn" class="stop-btn hidden">Stop</button>
-    </form>
+    </div>
+  </header>
 
+  <section id="features" class="features">
+    <div class="section-inner">
+      <h2 class="section-title">Three Ways to Extract Data</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">&#127919;</div>
+          <h3>Lead Generation</h3>
+          <p>Extract emails, phones, and LinkedIn profiles from business websites. Perfect for sales prospecting.</p>
+          <span class="feature-link">Leads &rarr;</span>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#127760;</div>
+          <h3>Web Search</h3>
+          <p>Scrape Google search results for any query with rich snippets and page descriptions.</p>
+          <span class="feature-link">Web &rarr;</span>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#127916;</div>
+          <h3>YouTube</h3>
+          <p>Extract video titles, channel names, and URLs from YouTube search results.</p>
+          <span class="feature-link">Video &rarr;</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-inner">
     <div id="toast" class="toast hidden"></div>
-
     <div id="statsBar" class="stats-bar hidden"></div>
+  </div>
 
-    <div id="filterBar" class="filter-bar hidden"></div>
-
+  <div class="section-inner">
     <div id="skeleton" class="skeleton hidden">
       <div class="skeleton-card"><div class="s-line w-60"></div><div class="s-line w-40"></div><div class="s-line w-80"></div></div>
       <div class="skeleton-card"><div class="s-line w-50"></div><div class="s-line w-70"></div><div class="s-line w-40"></div></div>
       <div class="skeleton-card"><div class="s-line w-70"></div><div class="s-line w-30"></div><div class="s-line w-60"></div></div>
     </div>
+  </div>
 
-    <div id="results" class="results">
-      <div class="results-header">
-        <h2>Results <span id="resultCount"></span></h2>
-        <div class="results-actions">
-          <button id="exportCsvBtn" class="btn-secondary">CSV</button>
+  <section id="results" class="results section-inner">
+    <div class="results-header">
+      <h2>Results <span id="resultCount"></span></h2>
+      <div class="results-actions">
+        <button id="exportCsvBtn" class="btn-secondary">Export CSV</button>
+      </div>
+    </div>
+    <div id="filterBar" class="filter-bar hidden"></div>
+    <div id="cardsView" class="cards-view"></div>
+  </section>
+
+  <section id="pricing" class="pricing">
+    <div class="section-inner">
+      <h2 class="section-title">Simple Pricing</h2>
+      <p class="section-sub">Free while in beta. Upgrade when you need more.</p>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <h3>Free</h3>
+          <div class="price">$0</div>
+          <ul>
+            <li>50 results per search</li>
+            <li>All source types</li>
+            <li>CSV export</li>
+            <li>AI query parsing</li>
+          </ul>
+          <button class="btn-primary">Get Started</button>
+        </div>
+        <div class="pricing-card popular">
+          <h3>Pro</h3>
+          <div class="price">$29<span>/mo</span></div>
+          <ul>
+            <li>500 results per search</li>
+            <li>URL scraping</li>
+            <li>Email &amp; phone analytics</li>
+            <li>Priority support</li>
+          </ul>
+          <button class="btn-primary">Coming Soon</button>
+        </div>
+        <div class="pricing-card">
+          <h3>Enterprise</h3>
+          <div class="price">Custom</div>
+          <ul>
+            <li>Unlimited results</li>
+            <li>Custom scrapers</li>
+            <li>API access</li>
+            <li>Dedicated support</li>
+          </ul>
+          <button class="btn-primary">Contact Us</button>
         </div>
       </div>
-      <div id="cardsView" class="cards-view"></div>
     </div>
+  </section>
 
-    <div id="modal" class="modal hidden">
-      <div class="modal-backdrop" id="modalClose"></div>
-      <div class="modal-content">
-        <button class="modal-x" id="modalCloseX">&times;</button>
-        <div id="modalBody"></div>
+  <section id="faq" class="faq">
+    <div class="section-inner">
+      <h2 class="section-title">FAQ</h2>
+      <div class="faq-list">
+        <div class="faq-item">
+          <div class="faq-q" onclick="this.parentNode.classList.toggle('open')">What data can I extract?</div>
+          <div class="faq-a">ScrapeX extracts business leads (emails, phones, LinkedIn), web search results with snippets, and YouTube video data from any search query.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="this.parentNode.classList.toggle('open')">How does the AI parser work?</div>
+          <div class="faq-a">Just type naturally like &quot;find plumbers in Austin with email&quot; and the AI badge lights up to show it auto-detected your location and keywords.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="this.parentNode.classList.toggle('open')">How do source toggles work?</div>
+          <div class="faq-a">Select which data sources to search before launching. Leads finds business contacts, Web searches Google, Video searches YouTube. Only selected sources are charged.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q" onclick="this.parentNode.classList.toggle('open')">Can I export my data?</div>
+          <div class="faq-a">Yes. Click &quot;Export CSV&quot; in the results header to download all visible results as a CSV file.</div>
+        </div>
       </div>
     </div>
+  </section>
 
-    <div class="footer">&copy; 2026 ScrapeX &mdash; Web Data Extraction. Designed by Z3D Productions</div>
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-logo">
+        <div class="logo-icon">S</div>
+        <span>ScrapeX</span>
+      </div>
+      <p>&copy; 2026 ScrapeX &mdash; Web Data Extraction. Designed by Z3D Productions</p>
+    </div>
+  </footer>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-backdrop" id="modalClose"></div>
+    <div class="modal-content">
+      <button class="modal-x" id="modalCloseX">&times;</button>
+      <div id="modalBody"></div>
+    </div>
   </div>
+
   <script src="script.js"></script>
 </body>
 </html>

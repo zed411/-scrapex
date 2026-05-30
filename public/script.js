@@ -2,7 +2,7 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
   ? '/api/scrape'
   : 'https://scrapex-a017.onrender.com/api/scrape';
 
-const SOURCE_COLORS = { 'leads': '#34a853', 'web': '#fdd663', 'video': '#ff6b6b' };
+const SOURCE_COLORS = { 'leads': '#7c3aed', 'web': '#8b5cf6', 'video': '#a78bfa' };
 const SOURCE_NAMES = { 'leads': 'Leads', 'web': 'Web', 'video': 'Video' };
 const STORE_KEY = 'scrapex_results';
 const HISTORY_KEY = 'scrapex_history';
@@ -154,7 +154,7 @@ els.searchForm.addEventListener('submit', async (e) => {
   activeFilters = { leads: true, web: true, video: true };
   els.cardsView.innerHTML = '';
   els.searchBtn.disabled = true;
-  els.searchBtn.textContent = 'Scraping…';
+  els.searchBtn.textContent = 'Launching…';
   els.stopBtn.classList.remove('hidden');
   hideResults();
   showToast('Scraping…', 'loading');
@@ -220,7 +220,7 @@ function stopScrape() {
   clearInterval(pollTimer); stopDone();
 }
 function stopDone() {
-  els.searchBtn.disabled = false; els.searchBtn.textContent = 'Scrape';
+  els.searchBtn.disabled = false; els.searchBtn.textContent = 'Launch';
   els.stopBtn.classList.add('hidden'); currentJobId = null;
   hideSkeleton(); showToast('Stopped', 'error');
 }
@@ -228,7 +228,7 @@ els.stopBtn.addEventListener('click', stopScrape);
 
 // Source filters - shown before scraping and after results
 const FILTER_NAMES = { 'leads': 'Leads', 'web': 'Web', 'video': 'Video' };
-const FILTER_COLORS = { 'leads': '#34a853', 'web': '#fdd663', 'video': '#ff6b6b' };
+const FILTER_COLORS = { 'leads': '#7c3aed', 'web': '#8b5cf6', 'video': '#a78bfa' };
 
 function renderSourceFilters() {
   const sources = ['leads', 'web', 'video'];
