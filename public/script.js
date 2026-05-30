@@ -1,6 +1,6 @@
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? '/api/scrape'
-  : 'https://scrapex-production-2b35.up.railway.app/api/scrape';
+  : 'https://scrapex-a017.onrender.com/api/scrape';
 
 const SOURCE_COLORS = { 'google-maps': '#4285f4', 'leads': '#34a853', 'ecommerce': '#fbbc04' };
 const SOURCE_NAMES = { 'google-maps': 'Maps', 'leads': 'Leads', 'web': 'Web', 'video': 'Video' };
