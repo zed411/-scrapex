@@ -108,8 +108,11 @@ async function scrapeGoogleSearch({ searchString, maxResults }, add, aborted) {
 async function scrapeYouTube({ searchString, maxResults }, add, aborted) {
   const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchString)}`;
   try {
-    const html = await fetch(url, { wait: 3000, scroll: true });
-    const $ = cheerio.load(html);
+    const res = await client.get({
+      url,
+      params: { render_js: true, wait: 3000, scroll: true, custom_google: false },
+    });
+    const $ = cheerio.load(res.data);
     let count = 0;
 
     // YouTube renders video data in ytd-video-renderer elements
@@ -122,14 +125,13 @@ async function scrapeYouTube({ searchString, maxResults }, add, aborted) {
       const meta = $el.find('#metadata-line span');
       const views = $(meta[0]).text().trim();
       const uploaded = $(meta[1]).text().trim();
-
       if (title) {
         add({ _source: 'video', title, channel: channel || '', views: views || '', uploaded: uploaded || '', url: link ? `https://www.youtube.com${link}` : '' });
         count++;
       }
     });
 
-    // Fallback: parse from script tags or simpler elements
+    // Fallback
     if (count === 0) {
       $('a[href*="/watch?"]').each((i, el) => {
         if (count >= maxResults) return false;
