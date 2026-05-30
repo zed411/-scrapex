@@ -148,6 +148,8 @@ els.searchForm.addEventListener('submit', async (e) => {
   if (currentJobId) stopScrape();
 
   saveHistory(query, location);
+  // Read selected sources BEFORE resetting
+  const selected = Object.entries(activeFilters).filter(([, v]) => v).map(([k]) => k);
   allItems = []; currentItems = []; prevCount = 0;
   activeFilters = { maps: true, web: true, video: true };
   els.cardsView.innerHTML = '';
@@ -159,7 +161,6 @@ els.searchForm.addEventListener('submit', async (e) => {
   showSkeleton();
 
   try {
-    const selected = Object.entries(activeFilters).filter(([, v]) => v).map(([k]) => k);
     const body = { searchString: query, maxCrawledPlaces: parseInt(max), templates: selected };
     if (location) body.locationQuery = location;
     const res = await fetch(API_URL, {
