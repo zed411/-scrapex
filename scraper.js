@@ -11,7 +11,7 @@ async function fetch(url, opts = {}) {
   if (!client) throw new Error('SCRAPINGBEE_API_KEY not set');
   const res = await client.get({
     url,
-    params: { render_js: true, premium_proxy: true, custom_google: true, ...opts },
+    params: { render_js: true, premium_proxy: true, ...opts },
   });
   return res.data;
 }
@@ -21,7 +21,7 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
   const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}/`;
 
   try {
-    const html = await fetch(searchUrl, { wait: 3000 });
+    const html = await fetch(searchUrl, { wait: 3000, custom_google: true });
     const $ = cheerio.load(html);
 
     const seen = new Set();
@@ -65,7 +65,7 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
 async function scrapeGoogleSearch({ searchString, maxResults }, add, aborted) {
   const url = `https://www.google.com/search?q=${encodeURIComponent(searchString)}&hl=en`;
   try {
-    const html = await fetch(url, { wait: 2000 });
+    const html = await fetch(url, { wait: 2000, custom_google: true });
     const $ = cheerio.load(html);
     let count = 0;
 
