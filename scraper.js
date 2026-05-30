@@ -1,10 +1,10 @@
-const ScrapingBee = require('scrapingbee');
+const { ScrapingBeeClient } = require('scrapingbee');
 const cheerio = require('cheerio');
 const API_KEY = process.env.SCRAPINGBEE_API_KEY || '';
 
 let client;
 if (API_KEY) {
-  client = new ScrapingBee(API_KEY);
+  client = new ScrapingBeeClient(API_KEY);
 }
 
 async function fetch(url, opts = {}) {
