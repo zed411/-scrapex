@@ -110,40 +110,22 @@ async function scrapeYouTube({ searchString, maxResults }, add, aborted) {
   try {
     const res = await client.htmlApi({
       url,
-      params: { render_js: true, wait: 3000, scroll: true },
+      params: { render_js: true, wait: 3000 },
     });
     const $ = cheerio.load(res.data);
     let count = 0;
 
-    // YouTube renders video data in ytd-video-renderer elements
-    $('ytd-video-renderer').each((i, el) => {
+    // Extract video links - simple approach that works reliably
+    $('a[href*="/watch?"]').each((i, el) => {
       if (count >= maxResults || aborted()) return false;
       const $el = $(el);
-      const title = $el.find('#video-title').text().trim();
-      const link = $el.find('#video-title').attr('href') || '';
-      const channel = $el.find('#channel-name, #text-container').first().text().trim();
-      const meta = $el.find('#metadata-line span');
-      const views = $(meta[0]).text().trim();
-      const uploaded = $(meta[1]).text().trim();
-      if (title) {
-        add({ _source: 'video', title, channel: channel || '', views: views || '', uploaded: uploaded || '', url: link ? `https://www.youtube.com${link}` : '' });
+      const title = $el.attr('title') || $el.text().trim();
+      const link = $el.attr('href') || '';
+      if (title && link.includes('/watch?')) {
+        add({ _source: 'video', title, channel: '', views: '', uploaded: '', url: `https://www.youtube.com${link}` });
         count++;
       }
     });
-
-    // Fallback
-    if (count === 0) {
-      $('a[href*="/watch?"]').each((i, el) => {
-        if (count >= maxResults) return false;
-        const $el = $(el);
-        const title = $el.attr('title') || $el.text().trim();
-        const link = $el.attr('href') || '';
-        if (title && link.includes('/watch?')) {
-          add({ _source: 'video', title, channel: '', views: '', uploaded: '', url: `https://www.youtube.com${link}` });
-          count++;
-        }
-      });
-    }
   } catch (err) {
     console.error('YouTube error:', err.message);
   }
