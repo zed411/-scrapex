@@ -9,8 +9,10 @@ if (API_KEY) {
 
 async function fetch(url, opts = {}) {
   if (!client) throw new Error('SCRAPINGBEE_API_KEY not set');
-  const params = { render_js: true, premium_proxy: true, ...opts };
-  const res = await client.get({ url, params });
+  const res = await client.htmlApi({
+    url,
+    params: { render_js: true, premium_proxy: true, ...opts },
+  });
   return res.data;
 }
 
