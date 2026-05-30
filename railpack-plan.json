@@ -1,5 +1,0 @@
-{
-  "node": "22",
-  "install": "npm ci",
-  "start": "node server.js"
-}
