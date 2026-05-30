@@ -1,6 +1,7 @@
 {
-  "env": {
-    "NODE_ENV": "production"
+  "build": {
+    "builder": "DOCKER",
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
     "startCommand": "node server.js",

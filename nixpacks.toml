@@ -1,5 +1,2 @@
-[phases.setup]
-nixPkgs = ["nodejs_18", "npm"]
-
-[variables]
+[env]
 NODE_ENV = "production"
