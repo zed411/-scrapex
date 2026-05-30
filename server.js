@@ -24,7 +24,7 @@ app.use((req, res, next) => {
 app.get('/api/health', (req, res) => res.json({ ok: true, apiKeySet: !!process.env.SCRAPINGBEE_API_KEY }));
 
 app.post('/api/scrape', async (req, res) => {
-  const { searchString, locationQuery, maxCrawledPlaces = 50 } = req.body;
+  const { searchString, locationQuery, maxCrawledPlaces = 50, templates } = req.body;
   if (!searchString) return res.status(400).json({ error: 'searchString is required' });
 
   const jobId = crypto.randomBytes(8).toString('hex');
@@ -36,9 +36,12 @@ app.post('/api/scrape', async (req, res) => {
     try {
       const add = (item) => { if (!job.aborted) job.items.push(item); };
       const aborted = () => job.aborted;
-      await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted);
-      await scrapeGoogleSearch({ searchString, maxResults: Number(maxCrawledPlaces) }, add, aborted);
-      await scrapeYouTube({ searchString, maxResults: Number(maxCrawledPlaces) }, add, aborted);
+      if (!templates || templates.includes('maps'))
+        await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted);
+      if (!templates || templates.includes('web'))
+        await scrapeGoogleSearch({ searchString, maxResults: Number(maxCrawledPlaces) }, add, aborted);
+      if (!templates || templates.includes('video'))
+        await scrapeYouTube({ searchString, maxResults: Number(maxCrawledPlaces) }, add, aborted);
       if (!job.aborted) job.status = 'done';
     } catch (err) {
       console.error('Scrape error:', err);

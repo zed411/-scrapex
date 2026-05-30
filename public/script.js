@@ -8,13 +8,13 @@ const STORE_KEY = 'scrapex_results';
 const HISTORY_KEY = 'scrapex_history';
 
 let currentItems = [];
-let allItems = []; // unfiltered
+let allItems = [];
 let isCardView = true;
 let sortKey = '';
 let sortAsc = true;
 let pollTimer = null;
 let currentJobId = null;
-let activeFilters = {};
+let activeFilters = { maps: true, web: true, video: true };
 
 const els = {
   searchForm: document.getElementById('searchForm'),
@@ -25,7 +25,6 @@ const els = {
   stopBtn: document.getElementById('stopBtn'),
   toast: document.getElementById('toast'),
   statsBar: document.getElementById('statsBar'),
-  filterBar: document.getElementById('filterBar'),
   skeleton: document.getElementById('skeleton'),
   results: document.getElementById('results'),
   cardsView: document.getElementById('cardsView'),
@@ -37,7 +36,7 @@ const els = {
   modalCloseX: document.getElementById('modalCloseX'),
   aiBadge: document.getElementById('aiBadge'),
   historyDropdown: document.getElementById('historyDropdown'),
-  sourceFilters: document.getElementById('sourceFilters'),
+  presetFilters: document.getElementById('presetFilters'),
 };
 
 function showToast(msg, type) {
@@ -152,7 +151,6 @@ els.searchForm.addEventListener('submit', async (e) => {
   allItems = []; currentItems = []; prevCount = 0;
   activeFilters = {};
   els.cardsView.innerHTML = '';
-  els.filterBar.classList.add('hidden');
   els.searchBtn.disabled = true;
   els.searchBtn.textContent = 'Scraping…';
   els.stopBtn.classList.remove('hidden');
@@ -161,7 +159,8 @@ els.searchForm.addEventListener('submit', async (e) => {
   showSkeleton();
 
   try {
-    const body = { searchString: query, maxCrawledPlaces: parseInt(max) };
+    const selected = Object.entries(activeFilters).filter(([, v]) => v).map(([k]) => k);
+    const body = { searchString: query, maxCrawledPlaces: parseInt(max), templates: selected };
     if (location) body.locationQuery = location;
     const res = await fetch(API_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -173,7 +172,7 @@ els.searchForm.addEventListener('submit', async (e) => {
       allItems = data.items; currentItems = data.items; prevCount = data.items.length;
       hideSkeleton();
       if (data.items.length === 0) { showToast('No results found', 'error'); stopDone(); return; }
-      buildFilters(data.items); applyFilters();
+      renderSourceFilters(); applyFilters();
       showToast(`Found ${data.items.length} results`, 'success');
       stopDone();
     }
@@ -200,7 +199,7 @@ function pollResults() {
         allItems = items;
         hideSkeleton();
         els.results.classList.remove('hidden');
-        if (prevCount === 0) buildFilters(items);
+        if (prevCount === 0) renderSourceFilters();
         applyFilters(newItems);
         showToast(`Found ${items.length} results${data.status === 'running' ? '…' : ''}`, 'loading');
         prevCount = items.length;
@@ -226,32 +225,32 @@ function stopDone() {
 }
 els.stopBtn.addEventListener('click', stopScrape);
 
-// Filters
-const FILTER_NAMES = { 'maps': 'Maps', 'web': 'Web', 'video': 'Video', 'leads': 'Leads' };
-const FILTER_COLORS = { 'maps': '#4285f4', 'web': '#fdd663', 'video': '#ff6b6b', 'leads': '#34a853' };
+// Source filters - shown before scraping and after results
+const FILTER_NAMES = { 'maps': 'Maps', 'web': 'Web', 'video': 'Video' };
+const FILTER_COLORS = { 'maps': '#4285f4', 'web': '#fdd663', 'video': '#ff6b6b' };
 
-function buildFilters(items) {
-  // Always show all 3 source buttons regardless of results
-  const allSources = ['maps', 'web', 'video'];
-  allSources.forEach(s => { if (activeFilters[s] === undefined) activeFilters[s] = true; });
-  
-  els.sourceFilters.innerHTML = allSources.map(s =>
+function renderSourceFilters() {
+  const sources = ['maps', 'web', 'video'];
+  els.presetFilters.innerHTML = sources.map(s =>
     '<div class="filter-chip ' + (activeFilters[s] ? 'on' : '') + '" data-source="' + s + '">' +
     '<span class="filter-dot" style="background:' + (FILTER_COLORS[s] || '#888') + '"></span>' +
     (FILTER_NAMES[s] || s) + '</div>'
   ).join('');
-  els.sourceFilters.classList.remove('hidden');
+  els.presetFilters.classList.remove('hidden');
 
-  els.sourceFilters.querySelectorAll('.filter-chip').forEach(chip => {
+  els.presetFilters.querySelectorAll('.filter-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const s = chip.dataset.source;
-      // If already active, turn it off (show all)
       if (activeFilters[s]) {
         Object.keys(activeFilters).forEach(k => activeFilters[k] = true);
       } else {
-        // Show only this source
         Object.keys(activeFilters).forEach(k => activeFilters[k] = k === s);
       }
+      els.presetFilters.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('on', activeFilters[c.dataset.source]));
+      if (allItems.length) renderFiltered();
+    });
+  });
+}
       els.sourceFilters.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('on', activeFilters[c.dataset.source]));
       renderFiltered();
     });
@@ -279,7 +278,7 @@ function applyFilters(newItems) {
     }));
   } else {
     // First batch: build filters and render
-    buildFilters(allItems);
+    renderSourceFilters();
     renderFiltered();
   }
 }
@@ -400,8 +399,9 @@ function restoreSaved() {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY));
     if (saved && saved.items && saved.items.length) {
       allItems = saved.items; currentItems = saved.items;
-      buildFilters(saved.items); applyFilters();
+      renderSourceFilters(); applyFilters();
     }
   } catch (_) {}
 }
 restoreSaved();
+
