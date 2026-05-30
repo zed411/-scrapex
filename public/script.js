@@ -251,11 +251,6 @@ function renderSourceFilters() {
     });
   });
 }
-      els.sourceFilters.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('on', activeFilters[c.dataset.source]));
-      renderFiltered();
-    });
-  });
-}
 
 function renderFiltered() {
   const active = Object.entries(activeFilters).filter(([, v]) => v).map(([k]) => k);
