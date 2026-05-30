@@ -149,7 +149,7 @@ els.searchForm.addEventListener('submit', async (e) => {
 
   saveHistory(query, location);
   allItems = []; currentItems = []; prevCount = 0;
-  activeFilters = {};
+  activeFilters = { maps: true, web: true, video: true };
   els.cardsView.innerHTML = '';
   els.searchBtn.disabled = true;
   els.searchBtn.textContent = 'Scraping…';
@@ -241,9 +241,12 @@ function renderSourceFilters() {
   els.presetFilters.querySelectorAll('.filter-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const s = chip.dataset.source;
-      if (activeFilters[s]) {
+      // If this source is the only one active, show all
+      const activeSources = Object.keys(activeFilters).filter(k => activeFilters[k]);
+      if (activeSources.length === 1 && activeSources[0] === s) {
         Object.keys(activeFilters).forEach(k => activeFilters[k] = true);
       } else {
+        // Show only this source
         Object.keys(activeFilters).forEach(k => activeFilters[k] = k === s);
       }
       els.presetFilters.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('on', activeFilters[c.dataset.source]));
