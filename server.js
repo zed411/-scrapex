@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
-const { scrapeGoogleMaps } = require('./scraper');
+const { scrapeGoogleMaps, scrapeGoogleSearch, scrapeYouTube } = require('./scraper');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +37,8 @@ app.post('/api/scrape', async (req, res) => {
       const add = (item) => { if (!job.aborted) job.items.push(item); };
       const aborted = () => job.aborted;
       await scrapeGoogleMaps({ searchString, locationQuery, maxResults: Number(maxCrawledPlaces) }, add, aborted);
+      await scrapeGoogleSearch({ searchString, maxResults: Number(maxCrawledPlaces) }, add, aborted);
+      await scrapeYouTube({ searchString, maxResults: Number(maxCrawledPlaces) }, add, aborted);
       if (!job.aborted) job.status = 'done';
     } catch (err) {
       console.error('Scrape error:', err);

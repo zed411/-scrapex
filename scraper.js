@@ -98,4 +98,89 @@ async function scrapeGoogleMaps({ searchString, locationQuery, maxResults }, add
   }
 }
 
-module.exports = { scrapeGoogleMaps };
+async function scrapeGoogleSearch({ searchString, maxResults }, add, aborted) {
+  const url = `https://www.google.com/search?q=${encodeURIComponent(searchString)}&hl=en`;
+  try {
+    const html = await fetch(url, { wait: 2000 });
+    const $ = cheerio.load(html);
+    let count = 0;
+
+    // Google search results are in div.g or div[data-hveid]
+    $('div.g, div[data-hveid]').each((i, el) => {
+      if (count >= maxResults || aborted()) return false;
+      const $el = $(el);
+      const title = $el.find('h3').first().text().trim();
+      const link = $el.find('a').first().attr('href') || '';
+      const snippet = $el.find('.VwiC3b, .lEBKkf, span.aCOpRe').first().text().trim();
+
+      // Clean up Google redirect URLs
+      let cleanUrl = link;
+      const urlMatch = link.match(/\/url\?q=([^&]+)/);
+      if (urlMatch) cleanUrl = decodeURIComponent(urlMatch[1]);
+
+      if (title && cleanUrl.startsWith('http')) {
+        add({ _source: 'web', title, url: cleanUrl, snippet: snippet || '' });
+        count++;
+      }
+    });
+
+    // If no results found with primary selector, try fallback
+    if (count === 0) {
+      $('a[href^="http"] h3').each((i, el) => {
+        if (count >= maxResults) return false;
+        const title = $(el).text().trim();
+        const link = $(el).parent().attr('href') || '';
+        if (title && link.startsWith('http')) {
+          add({ _source: 'web', title, url: link, snippet: '' });
+          count++;
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Google Search error:', err.message);
+  }
+}
+
+async function scrapeYouTube({ searchString, maxResults }, add, aborted) {
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchString)}`;
+  try {
+    const html = await fetch(url, { wait: 3000, scroll: true });
+    const $ = cheerio.load(html);
+    let count = 0;
+
+    // YouTube renders video data in ytd-video-renderer elements
+    $('ytd-video-renderer').each((i, el) => {
+      if (count >= maxResults || aborted()) return false;
+      const $el = $(el);
+      const title = $el.find('#video-title').text().trim();
+      const link = $el.find('#video-title').attr('href') || '';
+      const channel = $el.find('#channel-name, #text-container').first().text().trim();
+      const meta = $el.find('#metadata-line span');
+      const views = $(meta[0]).text().trim();
+      const uploaded = $(meta[1]).text().trim();
+
+      if (title) {
+        add({ _source: 'video', title, channel: channel || '', views: views || '', uploaded: uploaded || '', url: link ? `https://www.youtube.com${link}` : '' });
+        count++;
+      }
+    });
+
+    // Fallback: parse from script tags or simpler elements
+    if (count === 0) {
+      $('a[href*="/watch?"]').each((i, el) => {
+        if (count >= maxResults) return false;
+        const $el = $(el);
+        const title = $el.attr('title') || $el.text().trim();
+        const link = $el.attr('href') || '';
+        if (title && link.includes('/watch?')) {
+          add({ _source: 'video', title, channel: '', views: '', uploaded: '', url: `https://www.youtube.com${link}` });
+          count++;
+        }
+      });
+    }
+  } catch (err) {
+    console.error('YouTube error:', err.message);
+  }
+}
+
+module.exports = { scrapeGoogleMaps, scrapeGoogleSearch, scrapeYouTube };

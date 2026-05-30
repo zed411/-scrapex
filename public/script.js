@@ -3,7 +3,7 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
   : 'https://scrapex-production-2b35.up.railway.app/api/scrape';
 
 const SOURCE_COLORS = { 'google-maps': '#4285f4', 'leads': '#34a853', 'ecommerce': '#fbbc04' };
-const SOURCE_NAMES = { 'google-maps': 'Maps', 'leads': 'Leads', 'ecommerce': 'Shop' };
+const SOURCE_NAMES = { 'google-maps': 'Maps', 'leads': 'Leads', 'web': 'Web', 'video': 'Video' };
 const STORE_KEY = 'scrapex_results';
 const HISTORY_KEY = 'scrapex_history';
 
