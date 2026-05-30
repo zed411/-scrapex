@@ -92,8 +92,8 @@ els.searchInput.addEventListener('input', () => {
     const parsed = parseQuery(input);
     if (parsed.isNatural && parsed.searchTerm) {
       els.aiBadge.classList.remove('hidden');
-      if (parsed.location) { els.locationInput.value = parsed.location; els.locationInput.classList.add('parsed-highlight'); }
-      if (parsed.keywords) { els.keywordsInput.value = parsed.keywords; els.keywordsInput.classList.add('parsed-highlight'); }
+      if (parsed.location) { els.locationInput.value = '[' + parsed.location + ']'; els.locationInput.classList.add('parsed-highlight'); }
+      if (parsed.keywords) { els.keywordsInput.value = '[' + parsed.keywords + ']'; els.keywordsInput.classList.add('parsed-highlight'); }
     } else { els.aiBadge.classList.add('hidden'); }
   }, 400);
 });
@@ -133,7 +133,7 @@ function saveHistory(q, loc) {
 els.searchForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   let query = els.searchInput.value.trim();
-  let location = els.locationInput.value.trim();
+  let location = els.locationInput.value.trim().replace(/^\[|\]$/g, '');
   const max = 50;
   if (!query) return;
 
