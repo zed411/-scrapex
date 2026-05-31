@@ -165,14 +165,16 @@ els.loginForm.addEventListener('submit', async (e) => {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { els.loginError.textContent = 'Server error: ' + text.substring(0, 120); return; }
     if (!res.ok) { els.loginError.textContent = data.error || 'Login failed'; return; }
     setToken(data.token);
     localStorage.setItem('scrapex_email', data.email);
     closeAuthModal();
     showAuth();
     showToast('Signed in as ' + data.email, 'success');
-  } catch (err) { els.loginError.textContent = err.message; }
+  } catch (err) { els.loginError.textContent = 'Network error: ' + err.message; }
 });
 
 els.registerForm.addEventListener('submit', async (e) => {
@@ -187,14 +189,16 @@ els.registerForm.addEventListener('submit', async (e) => {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { els.registerError.textContent = 'Server error: ' + text.substring(0, 120); return; }
     if (!res.ok) { els.registerError.textContent = data.error || 'Registration failed'; return; }
     setToken(data.token);
     localStorage.setItem('scrapex_email', data.email);
     closeAuthModal();
     showAuth();
     showToast('Account created! Welcome ' + data.email, 'success');
-  } catch (err) { els.registerError.textContent = err.message; }
+  } catch (err) { els.registerError.textContent = 'Network error: ' + err.message; }
 });
 
 // Toast
