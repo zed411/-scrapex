@@ -100,17 +100,18 @@ body {
   position: absolute;
   width: 260px;
   padding: 20px 22px;
-  border: 1px solid rgba(139,92,246,0.35);
+  border: 1px solid rgba(139,92,246,0.4);
   border-radius: 18px;
-  background: rgba(10,7,24,0.65);
+  background: rgba(10,7,24,0.7);
   box-shadow:
-    0 0 80px rgba(139,92,246,0.18),
+    0 0 24px rgba(139, 92, 246, 0.28),
+    0 0 70px rgba(139, 92, 246, 0.12),
     0 8px 32px rgba(0,0,0,0.4),
-    inset 0 1px 0 rgba(139,92,246,0.15);
+    inset 0 0 18px rgba(139, 92, 246, 0.08);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  opacity: 0.6;
-  animation: floatCard 8s ease-in-out infinite;
+  opacity: 0.72;
+  animation: floatCard 5.5s ease-in-out infinite;
 }
 
 .float-card .float-card-icon {
@@ -176,17 +177,18 @@ body {
   display: block;
 }
 
-/* Card positions with slight tilts — far edges to not overlap center content */
-.float-card-left-1  { top: 12%;  left: 1%;   animation-delay: 0s; }
-.float-card-left-2  { top: 35%;  left: 0%;   animation-delay: 1.5s; }
-.float-card-left-3  { top: 58%;  left: 1%;   animation-delay: 3s; }
-.float-card-right-1 { top: 13%;  right: 1%;  animation-delay: 0.5s; }
-.float-card-right-2 { top: 37%;  right: 0%;  animation-delay: 2s; }
-.float-card-right-3 { top: 60%;  right: 1%;  animation-delay: 3.5s; }
+/* Staggered card positions - closer to center, varied rotations */
+.float-card-left-1  { top: 18%;  left: 14%;  transform: rotate(-2deg);  animation-delay: 0s; }
+.float-card-left-2  { top: 42%;  left: 7%;   transform: rotate(1deg);   animation-delay: 0.8s; }
+.float-card-left-3  { top: 65%;  left: 16%;  transform: rotate(-1.5deg); animation-delay: 1.6s; }
+.float-card-right-1 { top: 20%;  right: 14%; transform: rotate(2deg);   animation-delay: 0.4s; }
+.float-card-right-2 { top: 43%;  right: 7%;  transform: rotate(-1deg);  animation-delay: 1.2s; }
+.float-card-right-3 { top: 66%;  right: 16%; transform: rotate(1.5deg);  animation-delay: 2s; }
 
 @keyframes floatCard {
-  0%, 100% { transform: translateY(0) rotate(var(--rot, 0deg)); }
-  50%      { transform: translateY(-10px) rotate(var(--rot, 0deg)); }
+  0%   { translate: 0 0; }
+  50%  { translate: 0 -22px; }
+  100% { translate: 0 0; }
 }
 
 /* Mobile — hide floating cards */
