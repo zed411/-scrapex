@@ -1,9 +1,149 @@
+/* ========================================
+   BACKGROUND EFFECTS (from ChatGPT)
+   ======================================== */
+
+body {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    #05030d;
+  background-size: 64px 64px;
+  overflow-x: hidden;
+}
+
+/* Background wrapper */
+.background-effects {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Purple glow effects */
+.background-effects .glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(120px);
+}
+
+.background-effects .glow-main {
+  width: 620px;
+  height: 620px;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(139, 92, 246, 0.25);
+}
+
+.background-effects .glow-right {
+  width: 460px;
+  height: 460px;
+  right: 8%;
+  bottom: 5%;
+  background: rgba(99, 102, 241, 0.14);
+}
+
+/* Dot grid patterns */
+.background-effects .dot-grid {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  opacity: 0.3;
+  background-image: radial-gradient(
+    rgba(139, 92, 246, 0.7) 1.5px,
+    transparent 1.5px
+  );
+  background-size: 18px 18px;
+}
+
+.background-effects .dot-grid-left {
+  left: 3%;
+  bottom: 18%;
+}
+
+.background-effects .dot-grid-right {
+  right: 6%;
+  top: 16%;
+}
+
+/* Floating data cards */
+.background-effects .data-card {
+  position: absolute;
+  width: 210px;
+  padding: 16px;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 16px;
+  background: rgba(14, 11, 31, 0.65);
+  box-shadow: 0 0 40px rgba(139, 92, 246, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  opacity: 0.6;
+  animation: scrapexFloatCard 7s ease-in-out infinite;
+}
+
+.background-effects .data-card strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.background-effects .data-card span {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #a7a1c2;
+}
+
+.background-effects .bg-card-one {
+  top: 15%;
+  left: 2%;
+}
+
+.background-effects .bg-card-two {
+  bottom: 10%;
+  left: 4%;
+  animation-delay: 1.4s;
+}
+
+.background-effects .bg-card-three {
+  top: 16%;
+  right: 2%;
+  animation-delay: 0.8s;
+}
+
+.background-effects .bg-card-four {
+  bottom: 14%;
+  right: 4%;
+  animation-delay: 2s;
+}
+
+@keyframes scrapexFloatCard {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+/* Mobile cleanup for background effects */
+@media (max-width: 900px) {
+  .background-effects .data-card { display: none; }
+  .background-effects .glow-main { width: 400px; height: 400px; }
+  .background-effects .dot-grid { opacity: 0.15; }
+}
+
+@media (max-width: 600px) {
+  .background-effects .dot-grid { display: none; }
+  .background-effects .glow-main { width: 300px; height: 300px; top: 12%; }
+  .background-effects .glow-right { width: 240px; height: 240px; }
+}
+
+
+/* ========================================
+   ORIGINAL STYLES (preserved)
+   ======================================== */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 .hidden { display: none !important; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #05050f;
   color: #e1e1f0;
   min-height: 100vh;
 }
@@ -14,17 +154,17 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  background: #05050f;
+  background: transparent;
 }
 
 .hero-glow {
   position: absolute;
-  top: -40%;
+  top: 0%;
   left: 50%;
   transform: translateX(-50%);
-  width: 900px;
-  height: 900px;
-  background: radial-gradient(circle, rgba(124,58,237,.12) 0%, transparent 65%);
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(124,58,237,.1) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -394,7 +534,7 @@ body {
 .modal.hidden { display: none; }
 .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.7); }
 .modal-content { position: relative; background: #0f0f1d; border: 1px solid #2a2a40; border-radius: 14px; padding: 28px; max-width: 600px; width: 100%; max-height: 80vh; overflow-y: auto; animation: modalIn .2s ease; }
-@keyframes modalIn { from { opacity:0; transform:scale(.95) } to { opacity:1; transform:scale(1) } }
+@keyframes modalIn { from { opacity:0; transform:scale(.95) } to { opacity:1, transform:scale(1) } }
 .modal-x { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #6b6b8a; font-size: 1.5rem; cursor: pointer; padding: 4px; line-height: 1; }
 .modal-x:hover { color: #e1e1f0; }
 .modal-body h3 { font-size: 1.1rem; margin-bottom: 16px; color: #e1e1f0; }
