@@ -14,7 +14,6 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  overflow: hidden;
   background: #05050f;
 }
 
