@@ -92,7 +92,7 @@ async function checkAuth() {
   const token = getToken();
   if (!token) { hideAuth(); return; }
   try {
-    const res = await api(BASE_URL + '/api/auth/me');
+    const res = await api(BASE_URL + '/auth/me');
     if (res.ok) {
       const data = await res.json();
       localStorage.setItem('scrapex_email', data.email);
@@ -161,7 +161,7 @@ els.loginForm.addEventListener('submit', async (e) => {
   const password = els.loginPassword.value;
   if (!email || !password) return;
   try {
-    const res = await api(BASE_URL + '/api/auth/login', {
+    const res = await api(BASE_URL + '/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -183,7 +183,7 @@ els.registerForm.addEventListener('submit', async (e) => {
   if (!email || !password) return;
   if (password.length < 6) { els.registerError.textContent = 'Password must be at least 6 characters'; return; }
   try {
-    const res = await api(BASE_URL + '/api/auth/register', {
+    const res = await api(BASE_URL + '/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
