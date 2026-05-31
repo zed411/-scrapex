@@ -342,6 +342,10 @@ els.searchForm.addEventListener('submit', async (e) => {
   } catch (err) { showToast('Error: ' + err.message, 'error'); stopDone(); }
 });
 
+els.searchBtn.addEventListener('click', () => {
+  els.searchForm.dispatchEvent(new Event('submit', { cancelable: true }));
+});
+
 let prevCount = 0;
 
 function pollResults() {
