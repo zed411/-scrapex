@@ -152,13 +152,20 @@
       <div class="hero-content">
         <h1 class="hero-title">Extract Data <span class="gradient-text">from the Web</span></h1>
         <p class="hero-sub">Turn any search into structured data — business leads, web results, and videos. No coding required.</p>
-
-        <div class="signin-card">
-          <div class="signin-icon">🔒</div>
-          <h2>Sign in to start extracting</h2>
-          <p>Create a free account to use ScrapeX.</p>
-          <button class="btn-primary">Get Started Free</button>
-        </div>
+        <form id="searchForm" class="search-box">
+          <div class="search-input-wrap">
+            <input type="text" id="searchInput" placeholder="Search (or ask AI what to extract)" autocomplete="off" />
+            <span id="aiBadge" class="ai-badge hidden">AI</span>
+            <div id="historyDropdown" class="history-dropdown hidden"></div>
+          </div>
+          <input type="text" id="locationInput" placeholder="Location (auto-detected)" class="location-input" />
+          <input type="text" id="keywordsInput" placeholder="Keywords (auto-detected)" style="display:none" />
+          <div id="presetFilters" class="source-filters"></div>
+          <div class="search-actions">
+            <button type="submit" id="searchBtn">Launch</button>
+            <button type="button" id="stopBtn" class="stop-btn hidden">Cancel</button>
+          </div>
+        </form>
       </div>
     </div>
   </header>
