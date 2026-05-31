@@ -1,7 +1,7 @@
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? '/api/scrape'
   : 'https://scrapex-a017.onrender.com/api/scrape';
-const BASE_URL = API_URL.replace('/scrape', '');
+const BASE_URL = API_URL.replace('/api/scrape', '/api');
 
 const SOURCE_COLORS = { 'leads': '#7c3aed', 'web': '#8b5cf6', 'video': '#a78bfa' };
 const SOURCE_NAMES = { 'leads': 'Leads', 'web': 'Web', 'video': 'Video' };
@@ -161,14 +161,13 @@ els.loginForm.addEventListener('submit', async (e) => {
   const password = els.loginPassword.value;
   if (!email || !password) return;
   try {
-    const url = BASE_URL + '/auth/login';
-    const res = await api(url, {
+    const res = await api(BASE_URL + '/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
     const text = await res.text();
     let data;
-    try { data = JSON.parse(text); } catch { els.loginError.textContent = 'Server error (URL: ' + url + '): ' + text.substring(0, 120); return; }
+    try { data = JSON.parse(text); } catch { els.loginError.textContent = 'Server error: ' + text.substring(0, 120); return; }
     if (!res.ok) { els.loginError.textContent = data.error || 'Login failed'; return; }
     setToken(data.token);
     localStorage.setItem('scrapex_email', data.email);
@@ -186,14 +185,13 @@ els.registerForm.addEventListener('submit', async (e) => {
   if (!email || !password) return;
   if (password.length < 6) { els.registerError.textContent = 'Password must be at least 6 characters'; return; }
   try {
-    const url = BASE_URL + '/auth/register';
-    const res = await api(url, {
+    const res = await api(BASE_URL + '/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
     const text = await res.text();
     let data;
-    try { data = JSON.parse(text); } catch { els.registerError.textContent = 'Server error (URL: ' + url + '): ' + text.substring(0, 120); return; }
+    try { data = JSON.parse(text); } catch { els.registerError.textContent = 'Server error: ' + text.substring(0, 120); return; }
     if (!res.ok) { els.registerError.textContent = data.error || 'Registration failed'; return; }
     setToken(data.token);
     localStorage.setItem('scrapex_email', data.email);
