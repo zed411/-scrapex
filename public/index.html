@@ -9,65 +9,156 @@
 <body>
 
   <!-- Background Effects -->
-  <div class="background-effects">
-    <div class="glow glow-main"></div>
-    <div class="glow glow-right"></div>
+  <div class="bg-effects">
+    <!-- Grid pattern -->
+    <div class="grid-pattern"></div>
 
-    <div class="dot-grid dot-grid-left"></div>
-    <div class="dot-grid dot-grid-right"></div>
+    <!-- Perspective floor grid -->
+    <div class="floor-grid"></div>
 
-    <div class="data-card bg-card-one">
+    <!-- Glow behind hero -->
+    <div class="hero-glow-bg"></div>
+
+    <!-- Network nodes left -->
+    <svg class="network network-left" viewBox="0 0 300 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="50" y1="80" x2="150" y2="160" stroke="rgba(139,92,246,0.12)" stroke-width="1"/>
+      <line x1="150" y1="160" x2="100" y2="260" stroke="rgba(139,92,246,0.1)" stroke-width="1"/>
+      <line x1="50" y1="80" x2="30" y2="180" stroke="rgba(139,92,246,0.08)" stroke-width="1"/>
+      <line x1="100" y1="260" x2="60" y2="360" stroke="rgba(139,92,246,0.1)" stroke-width="1"/>
+      <line x1="150" y1="160" x2="200" y2="100" stroke="rgba(139,92,246,0.08)" stroke-width="1"/>
+      <line x1="30" y1="180" x2="80" y2="300" stroke="rgba(139,92,246,0.1)" stroke-width="1"/>
+      <line x1="80" y1="300" x2="60" y2="360" stroke="rgba(139,92,246,0.08)" stroke-width="1"/>
+      <line x1="60" y1="360" x2="120" y2="420" stroke="rgba(139,92,246,0.1)" stroke-width="1"/>
+      <circle cx="50" cy="80" r="3" fill="rgba(139,92,246,0.5)"/>
+      <circle cx="150" cy="160" r="4" fill="rgba(139,92,246,0.4)"/>
+      <circle cx="100" cy="260" r="3" fill="rgba(139,92,246,0.5)"/>
+      <circle cx="30" cy="180" r="2" fill="rgba(139,92,246,0.3)"/>
+      <circle cx="60" cy="360" r="3" fill="rgba(139,92,246,0.4)"/>
+      <circle cx="200" cy="100" r="2" fill="rgba(139,92,246,0.3)"/>
+      <circle cx="80" cy="300" r="3" fill="rgba(139,92,246,0.5)"/>
+      <circle cx="120" cy="420" r="2" fill="rgba(139,92,246,0.3)"/>
+    </svg>
+
+    <!-- Network nodes right -->
+    <svg class="network network-right" viewBox="0 0 300 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <line x1="250" y1="100" x2="160" y2="170" stroke="rgba(139,92,246,0.1)" stroke-width="1"/>
+      <line x1="160" y1="170" x2="210" y2="270" stroke="rgba(139,92,246,0.12)" stroke-width="1"/>
+      <line x1="250" y1="100" x2="270" y2="200" stroke="rgba(139,92,246,0.08)" stroke-width="1"/>
+      <line x1="210" y1="270" x2="250" y2="370" stroke="rgba(139,92,246,0.1)" stroke-width="1"/>
+      <line x1="160" y1="170" x2="110" y2="110" stroke="rgba(139,92,246,0.08)" stroke-width="1"/>
+      <line x1="270" y1="200" x2="220" y2="300" stroke="rgba(139,92,246,0.1)" stroke-width="1"/>
+      <line x1="220" y1="300" x2="250" y2="370" stroke="rgba(139,92,246,0.08)" stroke-width="1"/>
+      <line x1="250" y1="370" x2="190" y2="440" stroke="rgba(139,92,246,0.1)" stroke-width="1"/>
+      <circle cx="250" cy="100" r="4" fill="rgba(139,92,246,0.4)"/>
+      <circle cx="160" cy="170" r="3" fill="rgba(139,92,246,0.5)"/>
+      <circle cx="210" cy="270" r="3" fill="rgba(139,92,246,0.4)"/>
+      <circle cx="270" cy="200" r="2" fill="rgba(139,92,246,0.3)"/>
+      <circle cx="250" cy="370" r="3" fill="rgba(139,92,246,0.5)"/>
+      <circle cx="110" cy="110" r="2" fill="rgba(139,92,246,0.3)"/>
+      <circle cx="220" cy="300" r="3" fill="rgba(139,92,246,0.4)"/>
+      <circle cx="190" cy="440" r="2" fill="rgba(139,92,246,0.3)"/>
+    </svg>
+
+    <!-- Dot clusters -->
+    <div class="dot-cluster dcluster-1"></div>
+    <div class="dot-cluster dcluster-2"></div>
+
+    <!-- Floating Cards Left -->
+    <div class="float-card float-card-left-1">
+      <div class="float-card-icon">🌐</div>
       <strong>Website Data</strong>
-      <span>URLs • Titles • Images</span>
+      <span>URLs, Titles, Descriptions, Images & more</span>
+      <div class="mini-chart chart-line">
+        <svg viewBox="0 0 120 30"><polyline points="0,25 20,18 40,20 60,10 80,12 100,5 120,8" stroke="#7c3aed" stroke-width="2" fill="none" opacity="0.6"/></svg>
+      </div>
     </div>
 
-    <div class="data-card bg-card-two">
+    <div class="float-card float-card-left-2">
+      <div class="float-card-icon">👥</div>
       <strong>Business Leads</strong>
-      <span>Emails • Phones • Companies</span>
+      <span>Emails, Phones, Companies, Job Titles & more</span>
+      <div class="mini-users">
+        <span class="user-dot"></span>
+        <span class="user-dot"></span>
+        <span class="user-dot"></span>
+        <span class="user-dot"></span>
+        <small>+235</small>
+      </div>
     </div>
 
-    <div class="data-card bg-card-three">
+    <div class="float-card float-card-left-3">
+      <div class="float-card-icon">▶</div>
+      <strong>Video Results</strong>
+      <span>Titles, Views, Channels, Descriptions & more</span>
+      <div class="mini-chart chart-bar">
+        <div class="bar" style="height:40%;background:rgba(139,92,246,0.5);width:8px;border-radius:2px;display:inline-block;"></div>
+        <div class="bar" style="height:70%;background:rgba(139,92,246,0.6);width:8px;border-radius:2px;display:inline-block;margin-left:4px;"></div>
+        <div class="bar" style="height:50%;background:rgba(139,92,246,0.4);width:8px;border-radius:2px;display:inline-block;margin-left:4px;"></div>
+        <div class="bar" style="height:85%;background:rgba(139,92,246,0.7);width:8px;border-radius:2px;display:inline-block;margin-left:4px;"></div>
+        <div class="bar" style="height:60%;background:rgba(139,92,246,0.5);width:8px;border-radius:2px;display:inline-block;margin-left:4px;"></div>
+      </div>
+    </div>
+
+    <!-- Floating Cards Right -->
+    <div class="float-card float-card-right-1">
+      <div class="float-card-icon">🔍</div>
       <strong>Search Results</strong>
-      <span>Structured data from the web</span>
+      <span>Structured data from any search engine</span>
+      <div class="mini-progress">
+        <div class="progress-line" style="width:65%;background:linear-gradient(90deg,#7c3aed,#a78bfa);height:3px;border-radius:2px;"></div>
+      </div>
     </div>
 
-    <div class="data-card bg-card-four">
+    <div class="float-card float-card-right-2">
+      <div class="float-card-icon">📄</div>
       <strong>CSV Export</strong>
-      <span>Download clean data files</span>
+      <span>Download your data in CSV, Excel or JSON</span>
+      <div class="mini-progress">
+        <div class="progress-line" style="width:80%;background:linear-gradient(90deg,#7c3aed,#a78bfa);height:3px;border-radius:2px;"></div>
+      </div>
+    </div>
+
+    <div class="float-card float-card-right-3">
+      <div class="float-card-icon">🛡️</div>
+      <strong>No Coding</strong>
+      <span>Powerful extraction made simple</span>
+      <div class="mini-dots">
+        <span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+      </div>
     </div>
   </div>
 
+  <!-- Main Content -->
   <header class="hero">
-    <div class="hero-glow"></div>
     <div class="hero-inner">
       <nav class="nav">
         <div class="logo">
           <div class="logo-icon">S</div>
           <span class="logo-text">ScrapeX</span>
         </div>
-        <div class="nav-right">
+        <div class="nav-links">
           <a href="#features" class="nav-link">Features</a>
           <a href="#pricing" class="nav-link">Pricing</a>
           <a href="#faq" class="nav-link">FAQ</a>
         </div>
+        <div class="nav-auth">
+          <a href="#" class="nav-link">Sign In</a>
+          <button class="btn-signup">Sign Up</button>
+        </div>
       </nav>
+
       <div class="hero-content">
         <h1 class="hero-title">Extract Data <span class="gradient-text">from the Web</span></h1>
         <p class="hero-sub">Turn any search into structured data — business leads, web results, and videos. No coding required.</p>
-        <form id="searchForm" class="search-box">
-          <div class="search-input-wrap">
-            <input type="text" id="searchInput" placeholder="Search (or ask AI what to extract)" autocomplete="off" />
-            <span id="aiBadge" class="ai-badge hidden">AI</span>
-            <div id="historyDropdown" class="history-dropdown hidden"></div>
-          </div>
-          <input type="text" id="locationInput" placeholder="Location (auto-detected)" class="location-input" />
-          <input type="text" id="keywordsInput" placeholder="Keywords (auto-detected)" style="display:none" />
-          <div id="presetFilters" class="source-filters"></div>
-          <div class="search-actions">
-            <button type="submit" id="searchBtn">Launch</button>
-            <button type="button" id="stopBtn" class="stop-btn hidden">Cancel</button>
-          </div>
-        </form>
+
+        <div class="signin-card">
+          <div class="signin-icon">🔒</div>
+          <h2>Sign in to start extracting</h2>
+          <p>Create a free account to use ScrapeX.</p>
+          <button class="btn-primary">Get Started Free</button>
+        </div>
       </div>
     </div>
   </header>
@@ -101,22 +192,22 @@
       <h2 class="section-title">Three Ways to Extract Data</h2>
       <div class="feature-grid">
         <div class="feature-card">
-          <div class="feature-icon">&#127919;</div>
+          <div class="feature-icon">🎯</div>
           <h3>Lead Generation</h3>
           <p>Extract emails, phones, and LinkedIn profiles from business websites. Perfect for sales prospecting.</p>
-          <span class="feature-link">Leads &rarr;</span>
+          <span class="feature-link">Leads →</span>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">&#127760;</div>
+          <div class="feature-icon">🌐</div>
           <h3>Web Search</h3>
           <p>Scrape Google search results for any query with rich snippets and page descriptions.</p>
-          <span class="feature-link">Web &rarr;</span>
+          <span class="feature-link">Web →</span>
         </div>
         <div class="feature-card">
-          <div class="feature-icon">&#127916;</div>
+          <div class="feature-icon">▶</div>
           <h3>YouTube</h3>
           <p>Extract video titles, channel names, and URLs from YouTube search results.</p>
-          <span class="feature-link">Video &rarr;</span>
+          <span class="feature-link">Video →</span>
         </div>
       </div>
     </div>
@@ -170,19 +261,15 @@
       <div class="faq-list">
         <div class="faq-item">
           <div class="faq-q" onclick="this.parentNode.classList.toggle('open')">What data can I extract?</div>
-          <div class="faq-a">ScrapeX extracts business leads (emails, phones, LinkedIn), web search results with snippets, and YouTube video data from any search query.</div>
+          <div class="faq-a">ScrapeX extracts business leads, web search results with snippets, and YouTube video data from any search query.</div>
         </div>
         <div class="faq-item">
-          <div class="faq-q" onclick="this.parentNode.classList.toggle('open')">How does the AI ScrapeX work?</div>
-          <div class="faq-a">Just type naturally like &quot;find plumbers in Austin with email&quot; and ScrapeX auto-detects your location and keywords, then highlights them in the search fields. No complex syntax needed.</div>
-        </div>
-        <div class="faq-item">
-          <div class="faq-q" onclick="this.parentNode.classList.toggle('open')">How do source toggles work?</div>
-          <div class="faq-a">Select which data sources to search before launching. Leads finds business contacts, Web searches Google, Video searches YouTube. Only selected sources are charged.</div>
+          <div class="faq-q" onclick="this.parentNode.classList.toggle('open')">How does the AI work?</div>
+          <div class="faq-a">Just type naturally and ScrapeX auto-detects your location and keywords. No complex syntax needed.</div>
         </div>
         <div class="faq-item">
           <div class="faq-q" onclick="this.parentNode.classList.toggle('open')">Can I export my data?</div>
-          <div class="faq-a">Yes. Click &quot;Export CSV&quot; in the results header to download all visible results as a CSV file.</div>
+          <div class="faq-a">Yes. Click "Export CSV" in the results header to download all results.</div>
         </div>
       </div>
     </div>
@@ -194,17 +281,9 @@
         <div class="logo-icon">S</div>
         <span>ScrapeX</span>
       </div>
-      <p>&copy; 2026 ScrapeX &mdash; Web Data Extraction. Designed by Z3D Productions</p>
+      <p>&copy; 2026 ScrapeX — Web Data Extraction</p>
     </div>
   </footer>
-
-  <div id="modal" class="modal hidden">
-    <div class="modal-backdrop" id="modalClose"></div>
-    <div class="modal-content">
-      <button class="modal-x" id="modalCloseX">&times;</button>
-      <div id="modalBody"></div>
-    </div>
-  </div>
 
   <script src="script.js"></script>
 </body>
