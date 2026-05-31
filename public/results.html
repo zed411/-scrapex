@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Results — ScrapeX</title>
+  <link rel="stylesheet" href="results.css" />
+</head>
+<body class="results-page">
+
+  <!-- Background Effects (subtle, behind dashboard) -->
+  <div class="bg-effects">
+    <div class="grid-pattern"></div>
+    <div class="hero-glow-bg"></div>
+  </div>
+
+  <!-- Top Nav -->
+  <nav class="top-nav">
+    <div class="logo" onclick="window.location.href='/'">
+      <div class="logo-icon">S</div>
+      <span class="logo-text">ScrapeX</span>
+    </div>
+    <div class="nav-links">
+      <a href="/" class="nav-link">New Search</a>
+      <a href="/#features" class="nav-link">Features</a>
+      <a href="/#pricing" class="nav-link">Pricing</a>
+    </div>
+    <div class="nav-auth" id="navAuth">
+      <a href="#" class="nav-link" id="signInBtn">Sign In</a>
+      <button class="btn-signup" id="signUpBtn">Sign Up</button>
+    </div>
+    <div class="nav-user hidden" id="navUser">
+      <span class="nav-email" id="navEmail"></span>
+      <button class="btn-signup" id="signOutBtn" style="background:#2a2a40">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- Main Dashboard -->
+  <main class="dashboard">
+
+    <!-- Search Summary Bar -->
+    <section class="search-summary" id="searchSummary">
+      <div class="summary-left">
+        <div class="summary-query" id="summaryQuery">—</div>
+        <div class="summary-meta" id="summaryMeta"></div>
+      </div>
+      <div class="summary-right">
+        <span class="status-badge" id="statusBadge">Loading…</span>
+        <span class="result-total" id="resultTotal">0 results</span>
+      </div>
+    </section>
+
+    <!-- Toolbar -->
+    <section class="toolbar" id="toolbar">
+      <div class="toolbar-left">
+        <div class="filter-chips" id="filterChips"></div>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn-icon" id="btnExportCsv" title="Export CSV">📄 Export CSV</button>
+        <button class="btn-icon" id="btnSave" title="Save Results">💾 Save</button>
+        <button class="btn-primary btn-sm" id="btnRetry" title="Retry Search">🔄 Retry</button>
+      </div>
+    </section>
+
+    <!-- Loading Skeleton -->
+    <section class="skeleton-area" id="skeletonArea">
+      <div class="skeleton-card"><div class="s-line w-60"></div><div class="s-line w-40"></div><div class="s-line w-80"></div></div>
+      <div class="skeleton-card"><div class="s-line w-50"></div><div class="s-line w-70"></div><div class="s-line w-40"></div></div>
+      <div class="skeleton-card"><div class="s-line w-70"></div><div class="s-line w-30"></div><div class="s-line w-60"></div></div>
+    </section>
+
+    <!-- Stats Bar -->
+    <section class="stats-row hidden" id="statsRow">
+      <div class="stat"><span class="stat-value" id="statTotal">0</span><span class="stat-label">Results</span></div>
+      <div class="stat"><span class="stat-value" id="statSources">0</span><span class="stat-label">Sources</span></div>
+      <div class="stat"><span class="stat-value" id="statEmails">0</span><span class="stat-label">Emails</span></div>
+      <div class="stat"><span class="stat-value" id="statPhones">0</span><span class="stat-label">Phones</span></div>
+    </section>
+
+    <!-- Results View Toggle -->
+    <section class="view-toggle hidden" id="viewToggle">
+      <button class="view-btn active" id="viewCardsBtn">Cards</button>
+      <button class="view-btn" id="viewTableBtn">Table</button>
+    </section>
+
+    <!-- Cards View -->
+    <section class="cards-area" id="cardsArea"></section>
+
+    <!-- Table View -->
+    <section class="table-area hidden" id="tableArea">
+      <div class="table-wrap">
+        <table id="resultsTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Empty State -->
+    <section class="empty-state hidden" id="emptyState">
+      <div class="empty-icon">🔍</div>
+      <h2>No results yet</h2>
+      <p>Launch a search from the homepage to see results here.</p>
+      <button class="btn-primary" onclick="window.location.href='/'">New Search</button>
+    </section>
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+  </main>
+
+  <!-- Detail Modal -->
+  <div id="detailModal" class="modal hidden">
+    <div class="modal-backdrop" id="detailModalBg"></div>
+    <div class="modal-content">
+      <button class="modal-x" id="detailModalCloseX">&times;</button>
+      <div id="detailModalBody"></div>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div id="authModal" class="modal hidden">
+    <div class="modal-backdrop" id="authModalBg"></div>
+    <div class="modal-content" style="max-width:420px">
+      <button class="modal-x" id="authModalCloseX">&times;</button>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="authTabLogin">Sign In</button>
+        <button class="auth-tab" id="authTabRegister">Sign Up</button>
+      </div>
+      <form id="loginForm" class="auth-form">
+        <input type="email" id="loginEmail" placeholder="Email" required />
+        <input type="password" id="loginPassword" placeholder="Password" required />
+        <div id="loginError" class="auth-error"></div>
+        <button type="submit" class="btn-primary">Sign In</button>
+      </form>
+      <form id="registerForm" class="auth-form hidden">
+        <input type="email" id="registerEmail" placeholder="Email" required />
+        <input type="password" id="registerPassword" placeholder="Password" required />
+        <div id="registerError" class="auth-error"></div>
+        <button type="submit" class="btn-primary">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="results.js"></script>
+</body>
+</html>
