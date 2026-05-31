@@ -20,12 +20,26 @@
           <a href="#features" class="nav-link">Features</a>
           <a href="#pricing" class="nav-link">Pricing</a>
           <a href="#faq" class="nav-link">FAQ</a>
+          <div id="navAuth" class="nav-auth">
+            <button id="signInBtn" class="nav-link auth-btn">Sign In</button>
+            <button id="signUpBtn" class="auth-btn-primary">Sign Up</button>
+          </div>
+          <div id="navUser" class="nav-auth hidden">
+            <span id="navEmail" class="nav-email"></span>
+            <button id="signOutBtn" class="nav-link">Sign Out</button>
+          </div>
         </div>
       </nav>
       <div class="hero-content">
         <h1 class="hero-title">Extract Data <span class="gradient-text">from the Web</span></h1>
         <p class="hero-sub">Turn any search into structured data — business leads, web results, and videos. No coding required.</p>
-        <form id="searchForm" class="search-box">
+        <div id="authCta" class="auth-cta">
+          <div class="auth-cta-icon">&#128274;</div>
+          <h3>Sign in to start extracting</h3>
+          <p>Create a free account to use ScrapeX.</p>
+          <button id="authCtaBtn" class="auth-cta-btn">Get Started Free</button>
+        </div>
+        <form id="searchForm" class="search-box hidden">
           <div class="search-input-wrap">
             <input type="text" id="searchInput" placeholder="Search (or ask AI what to extract)" autocomplete="off" />
             <span id="aiBadge" class="ai-badge hidden">AI</span>
@@ -38,7 +52,6 @@
             <button type="button" id="stopBtn" class="stop-btn hidden">Cancel</button>
           </div>
         </form>
-
       </div>
     </div>
   </header>
@@ -174,6 +187,31 @@
     <div class="modal-content">
       <button class="modal-x" id="modalCloseX">&times;</button>
       <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <div id="authModal" class="modal hidden">
+    <div class="modal-backdrop" id="authModalBg"></div>
+    <div class="modal-content auth-modal">
+      <button class="modal-x" id="authModalCloseX">&times;</button>
+      <div class="auth-modal-inner">
+        <div class="auth-tabs">
+          <button id="authTabLogin" class="auth-tab active">Sign In</button>
+          <button id="authTabRegister" class="auth-tab">Create Account</button>
+        </div>
+        <form id="loginForm" class="auth-form">
+          <input type="email" id="loginEmail" placeholder="Email" required />
+          <input type="password" id="loginPassword" placeholder="Password" required />
+          <p id="loginError" class="auth-error"></p>
+          <button type="submit" class="auth-submit">Sign In</button>
+        </form>
+        <form id="registerForm" class="auth-form hidden">
+          <input type="email" id="registerEmail" placeholder="Email" required />
+          <input type="password" id="registerPassword" placeholder="Password (min 6 characters)" required />
+          <p id="registerError" class="auth-error"></p>
+          <button type="submit" class="auth-submit">Create Account</button>
+        </form>
+      </div>
     </div>
   </div>
 
