@@ -1,13 +1,11 @@
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? '/api/scrape'
   : 'https://scrapex-a017.onrender.com/api/scrape';
-const BASE_URL = API_URL.replace('/api/scrape', '/api');
 
 const SOURCE_COLORS = { 'leads': '#7c3aed', 'web': '#8b5cf6', 'video': '#a78bfa' };
 const SOURCE_NAMES = { 'leads': 'Leads', 'web': 'Web', 'video': 'Video' };
 const STORE_KEY = 'scrapex_results';
 const HISTORY_KEY = 'scrapex_history';
-const TOKEN_KEY = 'scrapex_token';
 
 let currentItems = [];
 let allItems = [];
@@ -17,16 +15,6 @@ let sortAsc = true;
 let pollTimer = null;
 let currentJobId = null;
 let activeFilters = { leads: true, web: true, video: true };
-
-function getToken() { return localStorage.getItem(TOKEN_KEY); }
-function setToken(t) { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); }
-
-function api(url, options = {}) {
-  const token = getToken();
-  const headers = { 'Content-Type': 'application/json', ...options.headers };
-  if (token) headers['Authorization'] = 'Bearer ' + token;
-  return fetch(url, { ...options, headers });
-}
 
 const els = {
   searchForm: document.getElementById('searchForm'),
@@ -49,159 +37,8 @@ const els = {
   aiBadge: document.getElementById('aiBadge'),
   historyDropdown: document.getElementById('historyDropdown'),
   presetFilters: document.getElementById('presetFilters'),
-  authCta: document.getElementById('authCta'),
-  authCtaBtn: document.getElementById('authCtaBtn'),
-  navAuth: document.getElementById('navAuth'),
-  navUser: document.getElementById('navUser'),
-  navEmail: document.getElementById('navEmail'),
-  signInBtn: document.getElementById('signInBtn'),
-  signUpBtn: document.getElementById('signUpBtn'),
-  signOutBtn: document.getElementById('signOutBtn'),
-  authModal: document.getElementById('authModal'),
-  authModalBg: document.getElementById('authModalBg'),
-  authModalCloseX: document.getElementById('authModalCloseX'),
-  authTabLogin: document.getElementById('authTabLogin'),
-  authTabRegister: document.getElementById('authTabRegister'),
-  loginForm: document.getElementById('loginForm'),
-  loginEmail: document.getElementById('loginEmail'),
-  loginPassword: document.getElementById('loginPassword'),
-  loginError: document.getElementById('loginError'),
-  registerForm: document.getElementById('registerForm'),
-  registerEmail: document.getElementById('registerEmail'),
-  registerPassword: document.getElementById('registerPassword'),
-  registerError: document.getElementById('registerError'),
 };
 
-// Auth state
-let isAuthenticated = false;
-
-function showAuth() {
-  if (els.navAuth) { els.navAuth.classList.add('hidden'); els.navUser.classList.remove('hidden'); }
-  if (els.authCta) { els.authCta.classList.add('hidden'); els.searchForm.classList.remove('hidden'); }
-  if (els.navEmail) els.navEmail.textContent = getToken() ? (localStorage.getItem('scrapex_email') || '') : '';
-  isAuthenticated = true;
-}
-
-function hideAuth() {
-  if (els.navAuth) { els.navAuth.classList.remove('hidden'); els.navUser.classList.add('hidden'); }
-  if (els.authCta) { els.authCta.classList.remove('hidden'); els.searchForm.classList.add('hidden'); }
-  isAuthenticated = false;
-}
-
-async function checkAuth() {
-  const token = getToken();
-  if (!token) { hideAuth(); return; }
-  try {
-    const res = await api(BASE_URL + '/auth/me');
-    if (res.ok) {
-      const data = await res.json();
-      localStorage.setItem('scrapex_email', data.email);
-      showAuth();
-    } else {
-      setToken(null);
-      localStorage.removeItem('scrapex_email');
-      hideAuth();
-    }
-  } catch {
-    hideAuth();
-  }
-}
-
-function openAuthModal(tab) {
-  els.authModal.classList.remove('hidden');
-  if (tab === 'register') switchAuthTab('register');
-  else switchAuthTab('login');
-}
-
-function closeAuthModal() { els.authModal.classList.add('hidden'); }
-
-function switchAuthTab(tab) {
-  if (tab === 'register') {
-    els.authTabRegister.classList.add('active');
-    els.authTabLogin.classList.remove('active');
-    els.registerForm.classList.remove('hidden');
-    els.loginForm.classList.add('hidden');
-    els.loginError.textContent = '';
-    els.registerError.textContent = '';
-  } else {
-    els.authTabLogin.classList.add('active');
-    els.authTabRegister.classList.remove('active');
-    els.loginForm.classList.remove('hidden');
-    els.registerForm.classList.add('hidden');
-    els.loginError.textContent = '';
-    els.registerError.textContent = '';
-  }
-}
-
-els.authTabLogin.addEventListener('click', () => switchAuthTab('login'));
-els.authTabRegister.addEventListener('click', () => switchAuthTab('register'));
-els.authModalBg.addEventListener('click', closeAuthModal);
-els.authModalCloseX.addEventListener('click', closeAuthModal);
-
-els.signInBtn.addEventListener('click', () => openAuthModal('login'));
-els.signUpBtn.addEventListener('click', () => openAuthModal('register'));
-els.authCtaBtn.addEventListener('click', () => openAuthModal('register'));
-
-els.signOutBtn.addEventListener('click', () => {
-  setToken(null);
-  localStorage.removeItem('scrapex_email');
-  localStorage.removeItem(STORE_KEY);
-  localStorage.removeItem(HISTORY_KEY);
-  hideAuth();
-  allItems = []; currentItems = [];
-  els.cardsView.innerHTML = '';
-  hideResults();
-  hideStats();
-});
-
-els.loginForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  els.loginError.textContent = '';
-  const email = els.loginEmail.value.trim();
-  const password = els.loginPassword.value;
-  if (!email || !password) return;
-  try {
-    const res = await api(BASE_URL + '/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    const text = await res.text();
-    let data;
-    try { data = JSON.parse(text); } catch { els.loginError.textContent = 'Server error: ' + text.substring(0, 120); return; }
-    if (!res.ok) { els.loginError.textContent = data.error || 'Login failed'; return; }
-    setToken(data.token);
-    localStorage.setItem('scrapex_email', data.email);
-    closeAuthModal();
-    showAuth();
-    showToast('Signed in as ' + data.email, 'success');
-  } catch (err) { els.loginError.textContent = 'Network error: ' + err.message; }
-});
-
-els.registerForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  els.registerError.textContent = '';
-  const email = els.registerEmail.value.trim();
-  const password = els.registerPassword.value;
-  if (!email || !password) return;
-  if (password.length < 6) { els.registerError.textContent = 'Password must be at least 6 characters'; return; }
-  try {
-    const res = await api(BASE_URL + '/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    const text = await res.text();
-    let data;
-    try { data = JSON.parse(text); } catch { els.registerError.textContent = 'Server error: ' + text.substring(0, 120); return; }
-    if (!res.ok) { els.registerError.textContent = data.error || 'Registration failed'; return; }
-    setToken(data.token);
-    localStorage.setItem('scrapex_email', data.email);
-    closeAuthModal();
-    showAuth();
-    showToast('Account created! Welcome ' + data.email, 'success');
-  } catch (err) { els.registerError.textContent = 'Network error: ' + err.message; }
-});
-
-// Toast
 function showToast(msg, type) {
   els.toast.className = 'toast ' + type;
   if (type === 'loading') els.toast.innerHTML = '<span class="spinner"></span> ' + msg;
@@ -227,7 +64,6 @@ function showStats(items) {
 function hideStats() { els.statsBar.classList.add('hidden'); }
 function hideResults() { els.results.classList.add('hidden'); hideStats(); }
 
-// Parse query
 function parseQuery(input) {
   let text = input.trim();
   if (!text || text.length < 5) return { searchTerm: text, location: '', keywords: '' };
@@ -265,7 +101,6 @@ els.searchInput.addEventListener('blur', () => setTimeout(() => els.historyDropd
 els.locationInput.addEventListener('focus', () => els.locationInput.classList.remove('parsed-highlight'));
 els.keywordsInput.addEventListener('focus', () => els.keywordsInput.classList.remove('parsed-highlight'));
 
-// History
 function showHistory() {
   const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
   if (!history.length) return;
@@ -292,7 +127,6 @@ function saveHistory(q, loc) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
 }
 
-// Submit
 els.searchForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   let query = els.searchInput.value.trim();
@@ -325,8 +159,8 @@ els.searchForm.addEventListener('submit', async (e) => {
   try {
     const body = { searchString: query, maxCrawledPlaces: parseInt(max), templates: selected };
     if (location) body.locationQuery = location;
-    const res = await api(API_URL, {
-      method: 'POST', body: JSON.stringify(body),
+    const res = await fetch(API_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) { showToast(data.error || 'Failed', 'error'); stopDone(); return; }
@@ -348,7 +182,7 @@ function pollResults() {
   if (!currentJobId) return;
   pollTimer = setInterval(async () => {
     try {
-      const res = await api(API_URL + '/' + currentJobId);
+      const res = await fetch(API_URL + '/' + currentJobId);
       const data = await res.json();
       if (!res.ok) {
         clearInterval(pollTimer);
@@ -378,7 +212,7 @@ function pollResults() {
 }
 
 function stopScrape() {
-  if (currentJobId) api(API_URL + '/' + currentJobId, { method: 'DELETE' }).catch(() => {});
+  if (currentJobId) fetch(API_URL + '/' + currentJobId, { method: 'DELETE' }).catch(() => {});
   clearInterval(pollTimer); stopDone();
 }
 function stopDone() {
@@ -388,7 +222,6 @@ function stopDone() {
 }
 els.stopBtn.addEventListener('click', stopScrape);
 
-// Source filters
 const FILTER_NAMES = { 'leads': 'Leads', 'web': 'Web', 'video': 'Video' };
 const FILTER_COLORS = { 'leads': '#7c3aed', 'web': '#8b5cf6', 'video': '#a78bfa' };
 
@@ -484,7 +317,6 @@ function copyResult(jsonStr) {
   setTimeout(() => { if (els.toast.classList.contains('success')) els.toast.classList.add('hidden'); }, 1500);
 }
 
-// Modal
 function openModal(item, columns) {
   els.modalBody.innerHTML = '<div class="modal-header"><h3>' + (item.title || item.name || 'Details') + '</h3>' +
     (item._source ? '<span class="source-badge source-' + item._source + '">' + (SOURCE_NAMES[item._source] || item._source) + '</span>' : '') + '</div>' +
@@ -503,7 +335,6 @@ els.modalCloseX.addEventListener('click', closeModal);
 els.modal.addEventListener('click', (e) => { if (e.target === els.modal) closeModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
-// Export
 els.exportCsvBtn.onclick = () => { exportFormat('csv'); };
 
 function exportFormat(fmt) {
@@ -539,7 +370,5 @@ function restoreSaved() {
   } catch (_) {}
 }
 
-// Init
-checkAuth();
 restoreSaved();
 renderSourceFilters();
