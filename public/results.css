@@ -4,7 +4,7 @@
 
 body.results-page{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  background:#030208;color:#e1e1f0;min-height:100vh;overflow-x:hidden
+  background:#030208;color:#e1e1f0;min-height:100vh
 }
 
 /* Background */
@@ -112,13 +112,18 @@ body.results-page{
 .copy-btn:hover{color:#a78bfa;background:rgba(124,58,237,.1)}
 
 /* Table */
-.table-area{overflow-x:auto}
-.table-wrap{border:1px solid #2a2a40;border-radius:12px;overflow:hidden}
-table{width:100%;border-collapse:collapse;font-size:.82rem}
-th{background:rgba(15,15,29,.9);color:#a78bfa;font-weight:600;text-align:left;
-  padding:12px 16px;border-bottom:1px solid #2a2a40;white-space:nowrap}
+.table-area{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative}
+.table-area::-webkit-scrollbar{height:6px}
+.table-area::-webkit-scrollbar-track{background:#0a0a14;border-radius:3px}
+.table-area::-webkit-scrollbar-thumb{background:#7c3aed;border-radius:3px}
+.table-area::-webkit-scrollbar-thumb:hover{background:#a78bfa}
+.table-wrap{border:1px solid #2a2a40;border-radius:12px;overflow:visible;min-width:100%}
+table{min-width:900px;border-collapse:collapse;font-size:.82rem;width:max-content}
+th{background:rgba(15,15,29,.95);color:#a78bfa;font-weight:600;text-align:left;
+  padding:12px 16px;border-bottom:1px solid #2a2a40;white-space:nowrap;
+  position:sticky;top:0;z-index:2}
 td{padding:10px 16px;border-bottom:1px solid rgba(42,42,64,.5);color:#c9c9e0;
-  max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  white-space:nowrap;max-width:300px;overflow:hidden;text-overflow:ellipsis}
 tr:hover td{background:rgba(124,58,237,.04)}
 td a{color:#a78bfa}
 
