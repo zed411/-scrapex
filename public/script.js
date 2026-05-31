@@ -202,10 +202,11 @@ function pollResults() {
         prevCount = items.length;
       }
       if (data.status !== 'running') {
-        clearInterval(pollTimer); stopDone();
+        clearInterval(pollTimer);
         if (data.status === 'stopped') showToast('Stopped', 'error');
         else if (items.length === 0) showToast('No results found', 'error');
         else showToast('Done — ' + items.length + ' results', 'success');
+        stopDone();
       }
     } catch (_) { /* ignore transient errors */ }
   }, 800);
@@ -213,12 +214,12 @@ function pollResults() {
 
 function stopScrape() {
   if (currentJobId) fetch(API_URL + '/' + currentJobId, { method: 'DELETE' }).catch(() => {});
-  clearInterval(pollTimer); stopDone();
+  clearInterval(pollTimer); stopDone(); showToast('Stopped', 'error');
 }
 function stopDone() {
   els.searchBtn.disabled = false; els.searchBtn.textContent = 'Launch';
   els.stopBtn.classList.add('hidden'); currentJobId = null;
-  hideSkeleton(); showToast('Stopped', 'error');
+  hideSkeleton();
 }
 els.stopBtn.addEventListener('click', stopScrape);
 
