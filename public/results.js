@@ -28,6 +28,7 @@ const els = {
   statusBadge: document.getElementById('statusBadge'), resultTotal: document.getElementById('resultTotal'),
   filterChips: document.getElementById('filterChips'), btnExportCsv: document.getElementById('btnExportCsv'),
   btnSave: document.getElementById('btnSave'), btnRetry: document.getElementById('btnRetry'),
+  btnStop: document.getElementById('btnStop'),
   skeletonArea: document.getElementById('skeletonArea'), statsRow: document.getElementById('statsRow'),
   statTotal: document.getElementById('statTotal'), statSources: document.getElementById('statSources'),
   statEmails: document.getElementById('statEmails'), statPhones: document.getElementById('statPhones'),
@@ -73,6 +74,7 @@ async function startSearch() {
   showLoading();
   els.statusBadge.textContent = 'Scraping…';
   els.statusBadge.className = 'status-badge running';
+  els.btnStop.classList.remove('hidden');
 
   try {
     const body = {
@@ -138,7 +140,22 @@ function stopDone() {
   currentJobId = null;
   els.statusBadge.textContent = allItems.length + ' results';
   els.statusBadge.className = 'status-badge done';
+  els.btnStop.classList.add('hidden');
 }
+
+// ===== STOP SCRAPING =====
+els.btnStop.addEventListener('click', async () => {
+  if (!currentJobId) return;
+  try {
+    await apiFetch(API_URL + '/scrape/' + currentJobId, { method: 'DELETE' });
+  } catch (_) {}
+  clearInterval(pollTimer);
+  currentJobId = null;
+  els.statusBadge.textContent = 'Stopped — ' + allItems.length + ' found';
+  els.statusBadge.className = 'status-badge stopped';
+  els.btnStop.classList.add('hidden');
+  showToast('Scraping stopped', 'error');
+});
 
 // ===== RENDER =====
 function renderAll() {

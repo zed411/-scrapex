@@ -47,6 +47,7 @@ body.results-page{
 .status-badge{padding:6px 14px;border-radius:20px;font-size:.78rem;font-weight:600}
 .status-badge.running{background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.2)}
 .status-badge.done{background:rgba(52,168,83,.1);color:#66bb6a;border:1px solid rgba(52,168,83,.15)}
+.status-badge.stopped{background:rgba(234,67,53,.1);color:#f28b82;border:1px solid rgba(234,67,53,.15)}
 .result-total{font-size:.85rem;color:#8b8ba7}
 
 /* Toolbar */
@@ -64,6 +65,10 @@ body.results-page{
   border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s}
 .btn-icon:hover{border-color:#7c3aed;background:rgba(124,58,237,.05)}
 .btn-sm{padding:8px 18px;font-size:.85rem}
+.btn-danger{padding:8px 18px;font-size:.85rem;background:linear-gradient(135deg,#ea4335,#c5221f);
+  color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer;
+  transition:all .2s;box-shadow:0 0 25px rgba(234,67,53,.3)}
+.btn-danger:hover{opacity:.85;box-shadow:0 0 35px rgba(234,67,53,.5)}
 
 /* Skeleton */
 .skeleton-area{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
