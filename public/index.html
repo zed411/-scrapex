@@ -43,6 +43,30 @@
     </div>
   </header>
 
+  <div class="section-inner">
+    <div id="toast" class="toast hidden"></div>
+    <div id="statsBar" class="stats-bar hidden"></div>
+  </div>
+
+  <div class="section-inner">
+    <div id="skeleton" class="skeleton hidden">
+      <div class="skeleton-card"><div class="s-line w-60"></div><div class="s-line w-40"></div><div class="s-line w-80"></div></div>
+      <div class="skeleton-card"><div class="s-line w-50"></div><div class="s-line w-70"></div><div class="s-line w-40"></div></div>
+      <div class="skeleton-card"><div class="s-line w-70"></div><div class="s-line w-30"></div><div class="s-line w-60"></div></div>
+    </div>
+  </div>
+
+  <section id="results" class="results section-inner">
+    <div class="results-header">
+      <h2>Results <span id="resultCount"></span></h2>
+      <div class="results-actions">
+        <button id="exportCsvBtn" class="btn-secondary">Export CSV</button>
+      </div>
+    </div>
+    <div id="filterBar" class="filter-bar hidden"></div>
+    <div id="cardsView" class="cards-view"></div>
+  </section>
+
   <section id="features" class="features">
     <div class="section-inner">
       <h2 class="section-title">Three Ways to Extract Data</h2>
@@ -67,30 +91,6 @@
         </div>
       </div>
     </div>
-  </section>
-
-  <div class="section-inner">
-    <div id="toast" class="toast hidden"></div>
-    <div id="statsBar" class="stats-bar hidden"></div>
-  </div>
-
-  <div class="section-inner">
-    <div id="skeleton" class="skeleton hidden">
-      <div class="skeleton-card"><div class="s-line w-60"></div><div class="s-line w-40"></div><div class="s-line w-80"></div></div>
-      <div class="skeleton-card"><div class="s-line w-50"></div><div class="s-line w-70"></div><div class="s-line w-40"></div></div>
-      <div class="skeleton-card"><div class="s-line w-70"></div><div class="s-line w-30"></div><div class="s-line w-60"></div></div>
-    </div>
-  </div>
-
-  <section id="results" class="results section-inner">
-    <div class="results-header">
-      <h2>Results <span id="resultCount"></span></h2>
-      <div class="results-actions">
-        <button id="exportCsvBtn" class="btn-secondary">Export CSV</button>
-      </div>
-    </div>
-    <div id="filterBar" class="filter-bar hidden"></div>
-    <div id="cardsView" class="cards-view"></div>
   </section>
 
   <section id="pricing" class="pricing">
