@@ -6,9 +6,9 @@
 /* Main page background */
 body {
   background:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    #05030d !important;
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    #05030d;
   background-size: 64px 64px;
   overflow-x: hidden;
 }
@@ -37,7 +37,6 @@ section,
   position: fixed;
   inset: 0;
   z-index: 0;
-  overflow: hidden;
   pointer-events: none;
 }
 
@@ -51,10 +50,10 @@ section,
 .background-effects .glow-main {
   width: 620px;
   height: 620px;
-  top: 18%;
+  top: 10%;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(139, 92, 246, 0.28);
+  background: rgba(139, 92, 246, 0.22);
 }
 
 .background-effects .glow-right {
@@ -62,7 +61,7 @@ section,
   height: 460px;
   right: 5%;
   bottom: 8%;
-  background: rgba(99, 102, 241, 0.16);
+  background: rgba(99, 102, 241, 0.12);
 }
 
 /* Dot grid patterns */
@@ -116,27 +115,27 @@ section,
   color: #a7a1c2;
 }
 
-/* Card positions — all within/around hero viewport for visibility */
+/* Card positions — positioned at viewport edges, visible in hero area */
 .background-effects .bg-card-one {
-  top: 18%;
-  left: 3%;
+  top: 200px;
+  left: 2%;
 }
 
 .background-effects .bg-card-two {
-  bottom: 15%;
-  left: 5%;
+  top: 380px;
+  left: 4%;
   animation-delay: 1.4s;
 }
 
 .background-effects .bg-card-three {
-  top: 20%;
-  right: 3%;
+  top: 200px;
+  right: 2%;
   animation-delay: 0.8s;
 }
 
 .background-effects .bg-card-four {
-  bottom: 20%;
-  right: 5%;
+  top: 380px;
+  right: 4%;
   animation-delay: 2s;
 }
 
@@ -199,7 +198,7 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  background: #05050f;
+  background: transparent;
 }
 
 .hero-glow {
