@@ -1,187 +1,3 @@
-/* ========================================
-   Scrapex Background Upgrade
-   Add this to the bottom of your CSS
-======================================== */
-
-/* Main page background */
-body {
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    #05030d;
-  background-size: 64px 64px;
-  overflow-x: hidden;
-}
-
-/* Keep existing page content above the background */
-header,
-nav,
-main,
-section,
-.navbar,
-.hero,
-.hero-inner,
-.hero-content,
-.features,
-.pricing,
-.faq,
-.footer,
-.modal,
-.section-inner {
-  position: relative;
-  z-index: 1;
-}
-
-/* Background wrapper */
-.background-effects {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* Purple glow effects */
-.background-effects .glow {
-  position: absolute;
-  border-radius: 999px;
-  filter: blur(120px);
-}
-
-.background-effects .glow-main {
-  width: 620px;
-  height: 620px;
-  top: 10%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(139, 92, 246, 0.22);
-}
-
-.background-effects .glow-right {
-  width: 460px;
-  height: 460px;
-  right: 5%;
-  bottom: 8%;
-  background: rgba(99, 102, 241, 0.12);
-}
-
-/* Dot grid patterns */
-.background-effects .dot-grid {
-  position: absolute;
-  width: 220px;
-  height: 220px;
-  opacity: 0.35;
-  background-image: radial-gradient(
-    rgba(139, 92, 246, 0.8) 1.5px,
-    transparent 1.5px
-  );
-  background-size: 18px 18px;
-}
-
-.background-effects .dot-grid-left {
-  left: 4%;
-  bottom: 23%;
-}
-
-.background-effects .dot-grid-right {
-  right: 8%;
-  top: 22%;
-}
-
-/* Floating data cards */
-.background-effects .data-card {
-  position: absolute;
-  width: 225px;
-  padding: 18px;
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 18px;
-  background: rgba(14, 11, 31, 0.72);
-  box-shadow: 0 0 60px rgba(139, 92, 246, 0.15), 0 8px 32px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  opacity: 0.75;
-  animation: scrapexFloatCard 7s ease-in-out infinite;
-}
-
-.background-effects .data-card strong {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 15px;
-  color: #ffffff;
-}
-
-.background-effects .data-card span {
-  font-size: 13px;
-  line-height: 1.4;
-  color: #a7a1c2;
-}
-
-/* Card positions — positioned at viewport edges, visible in hero area */
-.background-effects .bg-card-one {
-  top: 200px;
-  left: 2%;
-}
-
-.background-effects .bg-card-two {
-  top: 380px;
-  left: 4%;
-  animation-delay: 1.4s;
-}
-
-.background-effects .bg-card-three {
-  top: 200px;
-  right: 2%;
-  animation-delay: 0.8s;
-}
-
-.background-effects .bg-card-four {
-  top: 380px;
-  right: 4%;
-  animation-delay: 2s;
-}
-
-/* Floating animation */
-@keyframes scrapexFloatCard {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-14px);
-  }
-}
-
-/* Mobile cleanup */
-@media (max-width: 900px) {
-  .background-effects .data-card {
-    display: none;
-  }
-  .background-effects .glow-main {
-    width: 420px;
-    height: 420px;
-  }
-  .background-effects .dot-grid {
-    opacity: 0.2;
-  }
-}
-
-@media (max-width: 600px) {
-  .background-effects .dot-grid {
-    display: none;
-  }
-  .background-effects .glow-main {
-    width: 330px;
-    height: 330px;
-    top: 20%;
-  }
-  .background-effects .glow-right {
-    width: 280px;
-    height: 280px;
-  }
-}
-
-
-/* ========================================
-   ORIGINAL STYLES BELOW
-======================================== */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 .hidden { display: none !important; }
 
@@ -198,7 +14,7 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  background: transparent;
+  background: #05050f;
 }
 
 .hero-glow {
@@ -427,9 +243,8 @@ body {
 /* Features */
 .features {
   padding: 80px 20px;
-  background: rgba(10, 10, 20, 0.85);
+  background: #0a0a14;
   border-top: 1px solid #12121e;
-  backdrop-filter: blur(10px);
 }
 
 .section-inner { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
@@ -551,7 +366,7 @@ body {
 /* Cards */
 .cards-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
 .cards-view.hidden { display: none; }
-.card { background: #0f0f1d; border: 1px solid #2a2a40; border-radius: 10px; padding: 16px; cursor: pointer; transition: all .2s; }
+.card { background: #0f0f1d; border: 1px solid #2a2a40; border-radius: 10px; padding: 16px; cursor: pointer; transition: all .2s; position: relative; }
 .card:hover { border-color: #7c3aed; background: #12122a; }
 .card.new-card { animation: fadeSlideIn .4s ease; }
 .card-title { font-size: .9rem; font-weight: 600; color: #e1e1f0; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -573,7 +388,6 @@ body {
 .copy-btn { background: none; border: none; color: #5a5a7a; cursor: pointer; font-size: .75rem; padding: 2px 8px; border-radius: 4px; transition: all .15s; line-height: 1; margin-left: 6px; }
 .copy-btn:hover { color: #a78bfa; background: rgba(124,58,237,.1); }
 .card .copy-btn { position: absolute; top: 8px; right: 8px; }
-.card { position: relative; }
 
 /* Modal */
 .modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -602,9 +416,8 @@ body {
 /* Pricing */
 .pricing {
   padding: 80px 20px;
-  background: rgba(5, 5, 15, 0.85);
+  background: #05050f;
   border-top: 1px solid #12121e;
-  backdrop-filter: blur(10px);
 }
 
 .pricing-grid {
@@ -701,9 +514,8 @@ body {
 /* FAQ */
 .faq {
   padding: 80px 20px;
-  background: rgba(10, 10, 20, 0.85);
+  background: #0a0a14;
   border-top: 1px solid #12121e;
-  backdrop-filter: blur(10px);
 }
 
 .faq-list { max-width: 600px; margin: 0 auto; }
