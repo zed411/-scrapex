@@ -93,13 +93,13 @@ section,
   position: absolute;
   width: 225px;
   padding: 18px;
-  border: 1px solid rgba(139, 92, 246, 0.24);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 18px;
-  background: rgba(14, 11, 31, 0.58);
-  box-shadow: 0 0 45px rgba(139, 92, 246, 0.1);
+  background: rgba(14, 11, 31, 0.72);
+  box-shadow: 0 0 60px rgba(139, 92, 246, 0.15), 0 8px 32px rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  opacity: 0.55;
+  opacity: 0.75;
   animation: scrapexFloatCard 7s ease-in-out infinite;
 }
 
@@ -116,27 +116,27 @@ section,
   color: #a7a1c2;
 }
 
-/* Card positions */
+/* Card positions — all within/around hero viewport for visibility */
 .background-effects .bg-card-one {
-  top: 23%;
-  left: 11%;
+  top: 18%;
+  left: 3%;
 }
 
 .background-effects .bg-card-two {
-  bottom: 24%;
-  left: 14%;
+  bottom: 15%;
+  left: 5%;
   animation-delay: 1.4s;
 }
 
 .background-effects .bg-card-three {
-  top: 24%;
-  right: 12%;
+  top: 20%;
+  right: 3%;
   animation-delay: 0.8s;
 }
 
 .background-effects .bg-card-four {
-  bottom: 28%;
-  right: 16%;
+  bottom: 20%;
+  right: 5%;
   animation-delay: 2s;
 }
 
@@ -428,8 +428,9 @@ body {
 /* Features */
 .features {
   padding: 80px 20px;
-  background: #0a0a14;
+  background: rgba(10, 10, 20, 0.85);
   border-top: 1px solid #12121e;
+  backdrop-filter: blur(10px);
 }
 
 .section-inner { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
@@ -602,8 +603,9 @@ body {
 /* Pricing */
 .pricing {
   padding: 80px 20px;
-  background: #05050f;
+  background: rgba(5, 5, 15, 0.85);
   border-top: 1px solid #12121e;
+  backdrop-filter: blur(10px);
 }
 
 .pricing-grid {
@@ -700,8 +702,9 @@ body {
 /* FAQ */
 .faq {
   padding: 80px 20px;
-  background: #0a0a14;
+  background: rgba(10, 10, 20, 0.85);
   border-top: 1px solid #12121e;
+  backdrop-filter: blur(10px);
 }
 
 .faq-list { max-width: 600px; margin: 0 auto; }
