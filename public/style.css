@@ -1,3 +1,188 @@
+/* ========================================
+   Scrapex Background Upgrade
+   Add this to the bottom of your CSS
+======================================== */
+
+/* Main page background */
+body {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    #05030d !important;
+  background-size: 64px 64px;
+  overflow-x: hidden;
+}
+
+/* Keep existing page content above the background */
+header,
+nav,
+main,
+section,
+.navbar,
+.hero,
+.hero-inner,
+.hero-content,
+.features,
+.pricing,
+.faq,
+.footer,
+.modal,
+.section-inner {
+  position: relative;
+  z-index: 1;
+}
+
+/* Background wrapper */
+.background-effects {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Purple glow effects */
+.background-effects .glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(120px);
+}
+
+.background-effects .glow-main {
+  width: 620px;
+  height: 620px;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(139, 92, 246, 0.28);
+}
+
+.background-effects .glow-right {
+  width: 460px;
+  height: 460px;
+  right: 5%;
+  bottom: 8%;
+  background: rgba(99, 102, 241, 0.16);
+}
+
+/* Dot grid patterns */
+.background-effects .dot-grid {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  opacity: 0.35;
+  background-image: radial-gradient(
+    rgba(139, 92, 246, 0.8) 1.5px,
+    transparent 1.5px
+  );
+  background-size: 18px 18px;
+}
+
+.background-effects .dot-grid-left {
+  left: 4%;
+  bottom: 23%;
+}
+
+.background-effects .dot-grid-right {
+  right: 8%;
+  top: 22%;
+}
+
+/* Floating data cards */
+.background-effects .data-card {
+  position: absolute;
+  width: 225px;
+  padding: 18px;
+  border: 1px solid rgba(139, 92, 246, 0.24);
+  border-radius: 18px;
+  background: rgba(14, 11, 31, 0.58);
+  box-shadow: 0 0 45px rgba(139, 92, 246, 0.1);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  opacity: 0.55;
+  animation: scrapexFloatCard 7s ease-in-out infinite;
+}
+
+.background-effects .data-card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 15px;
+  color: #ffffff;
+}
+
+.background-effects .data-card span {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #a7a1c2;
+}
+
+/* Card positions */
+.background-effects .bg-card-one {
+  top: 23%;
+  left: 11%;
+}
+
+.background-effects .bg-card-two {
+  bottom: 24%;
+  left: 14%;
+  animation-delay: 1.4s;
+}
+
+.background-effects .bg-card-three {
+  top: 24%;
+  right: 12%;
+  animation-delay: 0.8s;
+}
+
+.background-effects .bg-card-four {
+  bottom: 28%;
+  right: 16%;
+  animation-delay: 2s;
+}
+
+/* Floating animation */
+@keyframes scrapexFloatCard {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+/* Mobile cleanup */
+@media (max-width: 900px) {
+  .background-effects .data-card {
+    display: none;
+  }
+  .background-effects .glow-main {
+    width: 420px;
+    height: 420px;
+  }
+  .background-effects .dot-grid {
+    opacity: 0.2;
+  }
+}
+
+@media (max-width: 600px) {
+  .background-effects .dot-grid {
+    display: none;
+  }
+  .background-effects .glow-main {
+    width: 330px;
+    height: 330px;
+    top: 20%;
+  }
+  .background-effects .glow-right {
+    width: 280px;
+    height: 280px;
+  }
+}
+
+
+/* ========================================
+   ORIGINAL STYLES BELOW
+======================================== */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 .hidden { display: none !important; }
 
